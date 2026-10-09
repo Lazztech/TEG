@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "TEG")(type "KiCad")(uri "${KIPRJMOD}/libs/TEG.kicad_sym")(options "")(descr "TEG harvester board parts"))
+)

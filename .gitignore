@@ -1,0 +1,18 @@
+# KiCad working/backup files
+*-bak
+*.kicad_prl
+*.kicad_pcb-bak
+*.kicad_sch-bak
+fp-info-cache
+_autosave-*
+*.lck
+
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated validation artifacts (regenerate with scripts/validate.sh)
+build/
