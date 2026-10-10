@@ -58,8 +58,8 @@ of it onto a hold capacitor, then regulates its boost input to that fraction.
 | D2 | 1 | **1N5819WS** | C191023 | SOD-323 | **basic** | MT3608 catch diode | Same part as D1 — order qty 2 |
 | L1 | 1 | 22 uH | **TBD** | 1008 (2.5x2.0 mm) | ext | BQ25504 boost inductor | **Datasheet-recommended value**; verify the chosen 22 uH part fits the 1008 land |
 | L2 | 1 | 22 uH | **TBD** | 1008 | ext | MT3608 boost inductor | Same part as L1 — qty 2 |
-| R13 | 1 | 10 MΩ | **TBD** | 0603 1 % | ext | MPPT sampling divider, top (ROC1) | Sets MPP ≈50 % with R14 |
-| R14 | 1 | 10 MΩ | **TBD** | 0603 1 % | ext | MPPT sampling divider, bottom (ROC2) | |
+| R13 | 1 | 10 MΩ | **C114606** | 0603 1 % | ext | MPPT sampling divider, top (ROC1) | Yageo `RC0603FR-0710ML`; sets MPP ≈50 % with R14 |
+| R14 | 1 | 10 MΩ | **C114606** | 0603 1 % | ext | MPPT sampling divider, bottom (ROC2) | Same part as R13 |
 | C3 | 1 | 10 nF | **C1589** | 0603 X7R | **basic** | `CREF` — MPPT hold cap, low leakage | `CL10B103KB8NNNC` |
 | C8 | 1 | 10 nF | **C1589** | 0603 X7R | **basic** | `CBYP` — VSTOR/VSS bypass | |
 | R1 | 1 | 5.90 MΩ | **TBD** | 0603 1 % | ext | VBAT_OV chain ROV1 | Datasheet worked example |
@@ -109,8 +109,11 @@ tracked as an open item in [PLAN.md](./PLAN.md). Conservative first, measured la
 - [x] Draft netlist generated ([scripts/gen_schematic.py](scripts/gen_schematic.py)) — 32 parts, 85 labeled pins
 - [x] **ERC: 1 warning** (`VBAT_OK` isolated label — intentional, reserved for status LED/test point)
 - [x] **Board DRC: 0 violations** (63 unconnected = unrouted ratsnest, expected)
-- [ ] Select JLCPCB parts for the 8 high-ohm 1 % resistors + 22 uH inductor (all extended)
-- [ ] Select the supercapacitor (low leakage) and add to the board
+- [ ] Source the remaining odd-value 1 % resistors (5.90 / 4.02 / 5.60 / 4.42 / 4.22 / 1.43 MΩ) —
+      all **standard E96 values**, easily bought from LCSC/Digi-Key/Amazon; JLCPCB's public search
+      could not resolve them reliably (API was degraded). Extended parts if placed by JLCPCB.
+- [ ] Buy the supercapacitor separately (low leakage) — **JLCPCB does not stock supercaps**, so it is
+      hand-soldered. Suggested: 0.22–0.47 F, 5.5 V radial (e.g. Panasonic EEC-S0H, Eaton HV series)
 - [ ] Compute MT3608 feedback divider (R8/R9) for 5.0 V
 - [ ] Decide voltage window (3.15 V conservative vs ~5.0 V wide) and recompute R1–R7
 - [ ] Route copper + GND pour, re-run DRC

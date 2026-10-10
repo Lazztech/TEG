@@ -35,8 +35,8 @@ PARTS = [
          nets={"1": "SW_HV", "2": "TEG+"}),  # datasheet recommends 22 uH; part TBD, verify it fits the 1008 land
     # MPPT sample-and-hold network: ROC1/ROC2 set the harvesting voltage to a fraction of Voc.
     # ratio = ROC1/(ROC1+ROC2) -> 10M/10M = ~50% of Voc, matched-load MPP for a TEG (solar uses 78%).
-    dict(ref="R13", sym="0603WAF1002T5E", fp="R0603", value="10M", lcsc=TBD, nets={"1": "TEG+", "2": "VOC_SAMP"}),
-    dict(ref="R14", sym="0603WAF1002T5E", fp="R0603", value="10M", lcsc=TBD, nets={"1": "VOC_SAMP", "2": "GND"}),
+    dict(ref="R13", sym="0603WAF1002T5E", fp="R0603", value="10M", lcsc="C114606", nets={"1": "TEG+", "2": "VOC_SAMP"}),
+    dict(ref="R14", sym="0603WAF1002T5E", fp="R0603", value="10M", lcsc="C114606", nets={"1": "VOC_SAMP", "2": "GND"}),
     dict(ref="C3", sym="CL10B103KB8NNNC", fp="C0603", value="10nF", lcsc="C1589",
          nets={"1": "VREF_SAMP", "2": "GND"}),  # CREF, low-leakage per datasheet
     dict(ref="C4", sym="CL21A106KAYNNNE", fp="C0805", value="10uF", lcsc="C15850",
