@@ -139,14 +139,20 @@ Draft currently uses a **single root sheet** with block annotations; to be split
 ## 7. Next steps
 
 1. ~~Populate `hardware/libs` and `hardware/footprints`~~ **done** (symbols + footprints + 3D WRL captured).
-2. Install KiCad, open `hardware/TEG.kicad_pro`, run ERC on the generated schematic and DRC on the
-   generated board; convert the label-per-pin schematic into routed wires / hierarchical sheets.
-3. Compute the BQ25504 programming resistor network (R1–R7) and the MT3608 5 V divider (R8/R9);
-   finalize values.
-4. Select storage element (supercap vs Li-ion) and the 0.5 W test-load element; add to BOM and netlist.
-5. Route the board (GND pour first, then power), add a GND zone, and re-check DRC.
-6. Export Gerbers/drill + JLCPCB `BOM.csv` / `CPL.csv`; produce a fabrication checklist
-   (stackup, assembly side, part rotations).
+2. ~~Install KiCad; run ERC/DRC~~ **done** (KiCad 10.0.6; ERC 1 warning, DRC 0 violations).
+3. ~~Compute the BQ25504 threshold network~~ **done** (datasheet worked example; R1–R4, R15/R7/R6).
+   Still open: MT3608 feedback divider (R8/R9) for an exact 5.0 V.
+4. ~~Select storage element~~ **done** — supercapacitor (0.22–0.47 F, 5.5 V). Still open: pick the
+   specific low-leakage part and the 0.5 W test-load element.
+5. **Route the board** — GND pour first, then power, then signals; re-check DRC.
+6. **Source the remaining parts** — supercap (hand-solder), 22 µH inductor, the six odd E96
+   resistors, R8/R9, R10. See the parts table in [README.md](README.md).
+7. **Export Gerbers/drill + JLCPCB `BOM.csv` / `CPL.csv`**; add a fabrication checklist
+   (stackup, assembly side, part rotations). No script yet.
+8. **Bench-verify** the board from a bench supply emulating the TEG before running the thermal tests.
+9. **Thermal tests** — one-module baseline, two-module comparison, five cold starts, 0.5 W load.
+10. Optional follow-ups: make the MPP ratio selectable (R13/R14) for measurement; recompute
+    R1–R7 for a wider (~5.0 V) voltage window; consider an onboard MCU for fan PWM.
 
 ## 8. Changelog
 
@@ -157,3 +163,4 @@ Draft currently uses a **single root sheet** with block annotations; to be split
 | 2026-10-09 | Board draft started: `scripts/gen_board.py` generates `TEG.kicad_pcb` from the **same** part/net table (30 footprints placed in a block layout, 82 pads / 81 netted, ratsnest-only, ~104×84 mm outline). Board is legacy-format (KiCad 5 `20171130`) because the fetched footprints are legacy-style; modern KiCad migrates on open |
 | 2026-10-09 | **KiCad 10.0.6 installed** (~/Applications, no sudo — Homebrew cask needs admin). Real validation now runs: ERC reduced 174 → 1 warning by (a) snapping placements to the 1.27 mm connection grid, (b) mapping the fetched symbols' `unspecified` pin types to power_in/output/passive by pin name, (c) adding PWR_FLAGs on GND/+5V/VBAT/VSTOR/TEG+ (def pulled from the installed KiCad power lib), (d) no-connect marker on MT3608 pin 6. Remaining ERC warning: `VBAT_OK` isolated label — intentional, reserved for status LED/test point. **DRC: 0 violations** (59 unconnected = unrouted ratsnest, expected). PDF renders in `build/` |
 | 2026-10-09 | **Storage decided: supercapacitor** (0.22–0.47 F, 5.5 V). **MPPT gap found and fixed:** the BQ25504 has MPPT built in, but the draft was *missing its sampling network* — added R13/R14 (10 MΩ/10 MΩ → ≈50 % of Voc, TEG matched-load, vs the datasheet's solar 78 %) and set CREF/CBYP = 10 nF (C1589). Also fixed the OV/UV chain order to the datasheet topology, added the missing third OK-chain resistor (R15), and corrected L1/L2 to the datasheet-recommended 22 µH. 32 parts / 85 pins; ERC 1 warning, DRC 0 violations. BOM rev B |
+| 2026-10-10 | R13/R14 given a real part (**C114606**, 10 MΩ 1 % 0603). Sourcing reality recorded: JLCPCB does **not stock supercapacitors** (hand-solder), and the six odd E96 resistors are standard parts but unresolvable through the degraded public search API. Removed a duplicate `PWR_FLAG` entry from the symbol library. **README expanded** with the settled decisions, a remaining-tasks checklist, the parts-to-source table, and the power-budget expectation |

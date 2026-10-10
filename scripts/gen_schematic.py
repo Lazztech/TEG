@@ -227,12 +227,11 @@ def load_library():
 def ensure_pwr_flag_in_lib():
     """Add PWR_FLAG to the project library so lib-linked lookups succeed."""
     syms = load_library()
-    if "PWR_FLAG" in syms:
+    if any(unq(k).endswith("PWR_FLAG") for k in syms):
         return
     text = LIB.read_text().rstrip()
     assert text.endswith(")")
-    body = text[:-1].rstrip() + "\n" + PWR_FLAG_DEF.replace("(symbol ", "(symbol ", 1) + "\n)\n"
-    LIB.write_text(body)
+    LIB.write_text(text[:-1].rstrip() + "\n" + PWR_FLAG_DEF + "\n)\n")
 
 # ---------------------------------------------------------------- emit
 def fmt(x):
