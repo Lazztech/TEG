@@ -2,14 +2,13 @@
 
 **Project:** Thermal Energy Harvesting Prototype (TEG power-conditioning board)
 **Target assembly:** JLCPCB SMT + THT
-**Revision:** Draft A — 2026-10-09
-**Status:** Part selection grounded in JLCPCB catalog lookups; draft netlist generated
-(30 parts / 81 labeled pins) in [hardware/TEG.kicad_sch](hardware/TEG.kicad_sch) and a placed
-board draft in [hardware/TEG.kicad_pcb](hardware/TEG.kicad_pcb) — not yet ERC/DRC-checked. See [PLAN.md](./PLAN.md).
+**Revision:** Draft B — 2026-10-09
+**Status:** Storage = supercapacitor (decided). Draft netlist = 32 parts / 85 labeled pins;
+ERC 1 intentional warning, board DRC 0 violations (copper unrouted). See [PLAN.md](./PLAN.md).
 
 > Source of part data: `jlc-client` against the JLCPCB catalog / EasyEDA. Stock and
 > `basic`/`extended` flags were read at the time of writing and will drift — re-verify
-> before ordering.
+> before ordering. `TBD` = value fixed but the JLCPCB part number still to be selected.
 
 ---
 
@@ -18,99 +17,100 @@ board draft in [hardware/TEG.kicad_pcb](hardware/TEG.kicad_pcb) — not yet ERC/
 ```
  TEG array (2 x Marlow TG12-4-01LS, series)
         |
-   J1 --+-- TEG input (screw terminal)   D1 = reverse-polarity clamp (parallel, NOT series)
+   J1 --+-- TEG input        D1 = reverse-polarity clamp (parallel, NOT series)
         |
-        +--> U1 BQ25504RGTT  (ultra-low-voltage boost charger + MPPT)
-                  |  L1 in VIN-DC<->LBST, C1 input bulk, C2/C3 sampling caps,
-                  |  R1-R7 programming network (values TBD)
-                  v
-             VBAT / VSTOR --> storage element (supercap / cell) [TBD]
-                  |
-             U2 MT3608  (boost -> regulated 5 V)  L2, D2 catch diode, R8/R9 feedback
-                  |
-                +5V rail --> J2 fan (Noctua NF-A8, 4-pin PWM; R11 Tach pull-up)
-                          +-> J3 test-load (0.5 W) switched by Q1 (R10/R12 gate)
+        +--> U1 BQ25504RGTT   (boost charger + built-in MPPT, cold start ~330 mV)
+        |        L1 22uH in VIN-DC<->LBST, C1 input bulk
+        |        MPPT: R13/R14 (10M/10M -> ~50% of Voc) + C3 (CREF 10nF)
+        |        thresholds: R1-R4 (OV/UV), R15/R7/R6 (OK), R5 (OT_PROG -> GND, 65C)
+        v
+   VBAT / VSTOR --> SC1 supercapacitor (0.22-0.47 F, 5.5 V)
+        |
+   U2 MT3608 (boost -> 5 V)  L2 22uH, D2 catch diode, R8/R9 feedback, C8 (CBYP)
+        |
+      +5V --> J2 fan (Noctua NF-A8 4-pin; R11 Tach pull-up)
+         +--> J3 test load (0.5 W) switched by Q1 (R10/R12 gate)
 ```
+
+## MPPT — how it is implemented
+
+MPPT is **built into U1 (BQ25504)**: no separate MPPT IC and no firmware. The IC
+periodically lets the harvester's open-circuit voltage (Voc) appear, samples a fraction
+of it onto a hold capacitor, then regulates its boost input to that fraction.
+
+- **Sampling network (required):** `R13`/`R14` divide VIN_DC down to the `VOC_SAMP` pin;
+  `C3` (`CREF`, 10 nF low-leakage) holds the reference on `VREF_SAMP`.
+- **MPP ratio = R13/(R13+R14).** The datasheet's worked example uses **78 %** because it
+  targets *solar*. A TEG delivers maximum power near a **matched load, ≈50 % of Voc**, so
+  this design uses **R13 = R14 = 10 MΩ → ≈50 %**. (Datasheet also recommends
+  R13+R14 = 20 MΩ, which 10+10 satisfies.)
+- The ratio is a **first estimate** — TEG MPP shifts with ΔT and module; the plan's
+  measurement phase should confirm it (and it may be worth making R13/R14 selectable).
 
 ## BOM
 
 | Ref | Qty | Value / Part | LCSC | Package | Basic? | Function | Notes |
 |-----|-----|--------------|------|---------|--------|----------|-------|
-| U1 | 1 | **BQ25504RGTT** | C157471 | VQFN-16 3x3 | ext | Ultra-low-power boost charger / energy harvester (TI), MPPT, cold-start ~330 mV | **Key part — confirmed stocked** (~249). Alt: BQ25504RGTR `C2876746` |
-| U2 | 1 | **MT3608** | C84817 | SOT-23-6 | ext | Boost converter -> regulated 5 V rail from VSTOR | Asynchronous — needs D2. High stock (~281 k) |
-| Q1 | 1 | **AO3400A** | C20917 | SOT-23 | **basic** | Low-side N-MOSFET switch for the 0.5 W test load | Very high stock |
-| D1 | 1 | **1N5819WS** | C191023 | SOD-323 | **basic** | Reverse-polarity clamp **across** the TEG input | Series diode would drop voltage and kill the ~330 mV cold start |
-| D2 | 1 | **1N5819WS** | C191023 | SOD-323 | **basic** | Catch diode for the MT3608 boost stage | Same part as D1 — order qty 2 |
-| L1 | 1 | 4.7 uH | C5832360 | 1008 (2.5x2.0 mm) | ext | BQ25504 boost inductor (160 mOhm, 2.6 A, 2 A sat) | Alt: `C177246` FXL0530-4R7-M (60 mOhm, 4.5 A) |
-| L2 | 1 | 4.7 uH | C5832360 | 1008 | ext | MT3608 boost inductor | Same part as L1 — order qty 2 |
-| C1 | 1 | 10 uF | C15850 | 0805 X5R | **basic** | TEG input bulk (`CL21A106KAYNNNE`) | |
-| C4 | 1 | 10 uF | C15850 | 0805 X5R | **basic** | VSTOR bulk | |
-| C5 | 1 | 10 uF | C15850 | 0805 X5R | **basic** | VBAT bulk | |
-| C6 | 1 | 10 uF | C15850 | 0805 X5R | **basic** | +5 V output bulk | |
-| C7 | 1 | 1 uF | C15849 | 0603 X5R | **basic** | +5 V HF decoupling (`CL10A105KB8NNNC`) | |
-| C8 | 1 | 100 nF | C1590 | 0603 X7R | **basic** | VSTOR HF decoupling (`CL10B104KA8NNNC`) | |
-| C2 | 1 | 100 nF | C1590 | 0603 X7R | **basic** | VOC-SAMP sampling cap | |
-| C3 | 1 | 100 nF | C1590 | 0603 X7R | **basic** | VREF-SAMP sampling cap | |
-| R1-R4 | 4 | TBD | TBD | 0603 1 % | **basic** | BQ25504 VBAT-OV/UV/VRDIV divider chain | Values pending datasheet math |
-| R5 | 1 | TBD | TBD | 0603 1 % | **basic** | BQ25504 OT-PROG | Values pending datasheet math |
-| R6, R7 | 2 | TBD | TBD | 0603 1 % | **basic** | BQ25504 OK-PROG / OK-HYST | Values pending datasheet math |
-| R8, R9 | 2 | TBD | TBD | 0603 1 % | **basic** | MT3608 +5 V feedback divider (Vref 0.6 V) | R8 top / R9 bottom |
-| R10 | 1 | 1 k | TBD | 0603 | **basic** | Q1 gate series resistor | Value provisional |
-| R11 | 1 | 10 k | C25804 | 0603 1 % | **basic** | Fan Tach pull-up to +5 V (`0603WAF1002T5E`) | |
-| R12 | 1 | 100 k | C25803 | 0603 1 % | **basic** | Q1 gate pull-down (load off by default) | `0603WAF1003T5E` |
-| J1 | 1 | **KF128-5.08-2P** | C474952 | THT P=5.08 mm | ext | TEG array input (2-pos screw terminal) | Alt: DB142R-5.08-2P `C2898709` |
-| J2 | 1 | **PZ254V-11-04P** | C2691448 | THT P=2.54 mm | ext | Fan header, 4-pin (GND / +5V / Tach / PWM) | Matches Noctua 4-pin PWM |
-| J3 | 1 | **KF128-5.08-2P** | C474952 | THT P=5.08 mm | ext | Test-load output (same terminal as J1) | Load element itself TBD |
-| SC1 | TBD | storage element | - | - | - | Supercapacitor or single Li-ion cell on VBAT | **Open — sizing pending** |
+| U1 | 1 | **BQ25504RGTT** | C157471 | VQFN-16 3x3 | ext | Boost charger + **built-in MPPT**, cold start ≈330 mV | Key part. Alt: BQ25504RGTR `C2876746` |
+| U2 | 1 | **MT3608** | C84817 | SOT-23-6 | ext | Boost → regulated 5 V rail | Asynchronous — needs D2 |
+| Q1 | 1 | **AO3400A** | C20917 | SOT-23 | **basic** | Low-side switch for the 0.5 W test load | |
+| D1 | 1 | **1N5819WS** | C191023 | SOD-323 | **basic** | Reverse-polarity clamp across the TEG input | Parallel, not series (series drop kills cold start) |
+| D2 | 1 | **1N5819WS** | C191023 | SOD-323 | **basic** | MT3608 catch diode | Same part as D1 — order qty 2 |
+| L1 | 1 | 22 uH | **TBD** | 1008 (2.5x2.0 mm) | ext | BQ25504 boost inductor | **Datasheet-recommended value**; verify the chosen 22 uH part fits the 1008 land |
+| L2 | 1 | 22 uH | **TBD** | 1008 | ext | MT3608 boost inductor | Same part as L1 — qty 2 |
+| R13 | 1 | 10 MΩ | **TBD** | 0603 1 % | ext | MPPT sampling divider, top (ROC1) | Sets MPP ≈50 % with R14 |
+| R14 | 1 | 10 MΩ | **TBD** | 0603 1 % | ext | MPPT sampling divider, bottom (ROC2) | |
+| C3 | 1 | 10 nF | **C1589** | 0603 X7R | **basic** | `CREF` — MPPT hold cap, low leakage | `CL10B103KB8NNNC` |
+| C8 | 1 | 10 nF | **C1589** | 0603 X7R | **basic** | `CBYP` — VSTOR/VSS bypass | |
+| R1 | 1 | 5.90 MΩ | **TBD** | 0603 1 % | ext | VBAT_OV chain ROV1 | Datasheet worked example |
+| R2 | 1 | 4.02 MΩ | **TBD** | 0603 1 % | ext | VBAT_OV chain ROV2 | |
+| R3 | 1 | 5.60 MΩ | **TBD** | 0603 1 % | ext | VBAT_UV chain RUV1 | |
+| R4 | 1 | 4.42 MΩ | **TBD** | 0603 1 % | ext | VBAT_UV chain RUV2 | |
+| R15 | 1 | 4.42 MΩ | **TBD** | 0603 1 % | ext | OK chain ROK1 | |
+| R7 | 1 | 4.22 MΩ | **TBD** | 0603 1 % | ext | OK chain ROK2 | |
+| R6 | 1 | 1.43 MΩ | **TBD** | 0603 1 % | ext | OK chain ROK3 | |
+| R5 | 1 | 0 Ω | **C21189** | 0603 | **basic** | `OT_PROG` → GND = 65 °C charge cutoff | Datasheet choice |
+| R8, R9 | 2 | TBD | **TBD** | 0603 1 % | ext | MT3608 +5 V feedback divider (Vref 0.6 V) | Value TBD |
+| R10 | 1 | 1 k | **TBD** | 0603 | ext | Q1 gate series resistor | Value provisional |
+| R11 | 1 | 10 k | **C25804** | 0603 1 % | **basic** | Fan Tach pull-up to +5 V | |
+| R12 | 1 | 100 k | **C25803** | 0603 1 % | **basic** | Q1 gate pull-down (load off by default) | |
+| C1 | 1 | 10 µF | **C15850** | 0805 X5R | **basic** | TEG input bulk (CIN, ≥4.7 µF) | |
+| C4 | 1 | 10 µF | **C15850** | 0805 X5R | **basic** | VSTOR bulk (CSTOR, ≥4.7 µF) | |
+| C5 | 1 | 10 µF | **C15850** | 0805 X5R | **basic** | VBAT bulk | |
+| C6 | 1 | 10 µF | **C15850** | 0805 X5R | **basic** | +5 V output bulk | |
+| C7 | 1 | 1 µF | **C15849** | 0603 X5R | **basic** | +5 V HF decoupling | |
+| J1 | 1 | **KF128-5.08-2P** | C474952 | THT P=5.08 mm | ext | TEG array input | Alt: DB142R-5.08-2P `C2898709` |
+| J2 | 1 | **PZ254V-11-04P** | C2691448 | THT P=2.54 mm | ext | Fan header (GND/+5V/Tach/PWM) | Noctua 4-pin PWM |
+| J3 | 1 | **KF128-5.08-2P** | C474952 | THT P=5.08 mm | ext | Test-load output | |
+| **SC1** | 1 | **supercapacitor 0.22–0.47 F, 5.5 V** | **TBD** | THT/large SMD | — | Storage on VBAT | **Hand-solder** — JLCPCB does not stock/place supercaps. Choose low-leakage; measure it (leakage can exceed harvest current) |
 
-### Notes on selection
+### Threshold values (datasheet worked example, SLUSAH0G §9.2.1)
 
-- **BQ25504 is the linchpin.** It is the only true sub-1 V energy-harvesting front-end found
-  in the catalog (MPPT + programmable VBAT-OV/UV + cold start). Exact-MPN searches initially
-  looked empty only because the tool's part-type filter narrows to one subcategory; a plain
-  text query finds it. Authoritative symbol/footprint were fetched successfully for it.
-- **D1 must be a parallel clamp, not a series diode.** A series Schottky drop (0.3-0.4 V)
-  at the input would defeat the whole point of a ~330 mV cold start.
-- **Fan speed is driven by an external PWM source on J2 pin 4** (the board has no MCU);
-  that same signal optionally gates the test load via R10/R12. Whether to onboard an MCU
-  is an open question in [PLAN.md](./PLAN.md).
-- **Passives chosen are JLCPCB *basic*** where possible (10 k/100 k, 1 uF/10 uF MLCC, 100 nF)
-  to avoid extended-part setup fees.
+VBAT_OV 3.15 V · VBAT_UV 2.20 V · VBAT_OK 2.44 V · VBAT_OK_HYST 2.80 V
 
-## Not stocked / ruled out
+These are the datasheet's *verified* values, and 3.15 V OV is conservative for a 5.5 V cell
+(good margin, less stress). It also leaves usable energy only between 3.15 V and ~2.2 V:
+in 0.47 F that is ≈1.2 J ≈ **2–4 s of fan**. **Raising OV toward ~5.0 V would roughly
+triple that** (≈4.4 J) but requires recomputing R1–R7 with TI's equations/design tool —
+tracked as an open item in [PLAN.md](./PLAN.md). Conservative first, measured later.
 
-| Candidate | Why not used |
-|-----------|--------------|
-| LTC3105 | Not found in JLCPCB catalog |
-| ADP5090 | Not found in JLCPCB catalog |
-| SPV1050 | Not found in JLCPCB catalog |
+## Not stocked / alternatives
 
-## Library / KiCad status
-
-Everything is captured under `hardware/` and wired into `sym-lib-table` / `fp-lib-table`:
-
-| Ref | Symbol (`TEG:`) | Footprint (`TEG:`) | 3D model |
-|-----|-----------------|--------------------|----------|
-| U1 | `BQ25504RGTT` | `VQFN-16_L3.0-W3.0-P0.50-TL-EP` | OK |
-| U2 | `MT3608` | `SOT-23-6_L2.9-W1.6-P0.95-LS2.8-BL` | OK |
-| Q1 | `AO3400A` | `SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR` | OK |
-| D1/D2 | `1N5819WS` | `SOD-323_L1.8-W1.3-LS2.5-RD` | OK |
-| L1/L2 | `FTC252010S4R7MBCA` | `IND-SMD_L2.5-W2.0-VLS252012CX-150M` | OK |
-| R | `0603WAF1002T5E` (10 k) / `0603WAF1003T5E` (100 k) | `R0603` | OK |
-| C | `CL21A106KAYNNNE` (10 uF) | `C0805` | OK |
-| C | `CL10A105KB8NNNC` (1 uF) / `CL10B104KA8NNNC` (100 nF) | `C0603` | OK |
-| J1/J3 | `KF128-5.08-2P` | `CONN-TH_P5.08_KF128-5.08-2P` | OK |
-| J2 | `PZ254V-11-04P_C2691448` | `HDR-TH_4P-P2.54-V-M` | OK |
+| Candidate | Note |
+|-----------|------|
+| LTC3105 (C107818) | **Actually in catalog** (earlier "not found" was the category-filter bug). Ultra-low 225 mV input, but no MPPT — BQ25504 is the better fit |
+| BQ25570 (C506250) | BQ25504 + integrated regulated output — possible simplification |
+| LTC4041 / MAX38888 | Supercap backup chargers (not harvest front-ends) |
+| Li-ion / LiFePO4 storage | Rejected for the prototype: fire/cold-plating risk in a thermal device. See [PLAN.md](./PLAN.md) §6 |
 
 ## Verification status
 
-- [x] U1 BQ25504RGTT — symbol + footprint + 3D fetched
-- [x] All 30 draft parts: symbol + footprint + 3D captured into project libraries
-- [x] Draft netlist generated ([scripts/gen_schematic.py](scripts/gen_schematic.py)) — 30 parts, 81 labeled pins
+- [x] All 32 parts: symbol + footprint (+ 3D where available) captured into project libraries
+- [x] Draft netlist generated ([scripts/gen_schematic.py](scripts/gen_schematic.py)) — 32 parts, 85 labeled pins
 - [x] **ERC: 1 warning** (`VBAT_OK` isolated label — intentional, reserved for status LED/test point)
-- [x] **Board DRC: 0 violations** (59 unconnected items = unrouted ratsnest, expected)
-- [ ] BQ25504 + MT3608 programming resistor values computed from datasheets
-      (datasheet downloaded; worked-example values extracted — see PLAN.md §6)
-- [ ] Storage element selected and sized
+- [x] **Board DRC: 0 violations** (63 unconnected = unrouted ratsnest, expected)
+- [ ] Select JLCPCB parts for the 8 high-ohm 1 % resistors + 22 uH inductor (all extended)
+- [ ] Select the supercapacitor (low leakage) and add to the board
+- [ ] Compute MT3608 feedback divider (R8/R9) for 5.0 V
+- [ ] Decide voltage window (3.15 V conservative vs ~5.0 V wide) and recompute R1–R7
 - [ ] Route copper + GND pour, re-run DRC
-- [ ] WRL 3D-model units/scale visually checked in KiCad

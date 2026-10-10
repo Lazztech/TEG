@@ -66,12 +66,15 @@ Notes learned the hard way (see [PLAN.md](PLAN.md) §3):
 
 ## Design in one paragraph
 
-Two Marlow TG12-4-01LS TEG modules in series feed the BQ25504 boost charger
-(MPPT, cold-starts from ≈330 mV) through a screw terminal. The BQ25504 charges a
-storage element on `VBAT` and exposes `VSTOR`; an MT3608 boost then regulates a 5 V
-rail for the Noctua NF-A8 4-pin PWM fan (Tach pull-up, PWM from a test header) and a
-switchable 0.5 W test load (AO3400A low-side MOSFET). Two-stage on purpose: it keeps
-the harvester's MPPT decoupled from load transients and lets a cold-start charge the
-storage before the 5 V boost is asked to run.
+Two Marlow TG12-4-01LS TEG modules in series feed the BQ25504 boost charger through a
+screw terminal. The BQ25504 does **MPPT in hardware** (no extra IC): R13/R14 sample a
+fraction of the harvester's open-circuit voltage onto a hold cap, and the chip regulates
+its input to that fraction. That ratio is set to **≈50 % of Voc** (R13 = R14 = 10 MΩ) —
+matched-load MPP for a TEG, *not* the datasheet's 78 % solar figure. The charger fills a
+**supercapacitor** on `VBAT` (safer than a battery in a heated device) and exposes `VSTOR`;
+an MT3608 boost then regulates a 5 V rail for the Noctua NF-A8 4-pin PWM fan (Tach pull-up,
+PWM from a test header) and a switchable 0.5 W test load (AO3400A low-side MOSFET).
+Two-stage on purpose: it keeps the harvester's MPPT decoupled from load transients and
+lets a cold-start charge the storage before the 5 V boost is asked to run.
 
 Open questions and thermal/mechanical context: [PLAN.md](PLAN.md).
