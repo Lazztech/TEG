@@ -34,7 +34,7 @@ A printed **wedge enclosure** carries the assembly and holds it to the fireplace
 |----|-------------|--------|
 | E1 | Total output power | **~3–4 W** continuous at a strong temperature difference |
 | E2 | Output voltage | **5 V** |
-| E3 | Output ports | **1 × USB-A and 1 × USB-C**, sharing the available power |
+| E3 | Output ports | **1 × USB-A and 1 × USB-C**, sharing the available power. **Both roles required:** charging a battery bank *and* powering USB loads, so USB-C **PD** should be provided |
 | E4 | MPPT | Operate the array near its maximum power point |
 | E5 | Indication | Built-in **voltmeter** so the operating point is visible |
 | E6 | Cold start | Must start from a comparably weak temperature difference; no external power needed to begin |
@@ -63,7 +63,7 @@ part of this device has a much lower limit. *(Limits marked ✔ are from datashe
 
 | ID | Requirement | Limit |
 |----|-------------|-------|
-| T1 | Hot side is **clamped/regulated to ~120 °C** | Never rely on the fireplace to self-limit |
+| T1 | Hot side is **clamped to ~150 °C** (datasheet allows 200 °C continuous) | Fireplace surface temperature is TBD — the clamp must hold the module temperature regardless of how hot the surface gets, which is why it is a design requirement rather than a measurement |
 | T2 | Printed enclosure stays cool | PLA softens ~60 °C, PETG ~80 °C — keep the plastic off the hot path |
 | T3 | Electronics stay cool | BQ25504-class junction 105 °C ✔, electrolytics 105 °C ✔, MT3608-class ~85 °C |
 | T4 | **Magnets must survive** | Common NdFeB fails below ~80 °C — use **SmCo** and/or put magnets on the cold side |
@@ -135,13 +135,66 @@ predates requirement E3. The new power board will add them.
 | Voltmeter | If not integrated on the board |
 | Enclosure | Printed in-house; see P4 |
 
+## 8. Verified module data (Coherent TG12-4 datasheet)
+
+Source: Coherent *Single-Stage Thermoelectric Generator TG12-4* datasheet (2022). This closes the
+long-standing "module datasheet pending" item and **replaces the earlier estimates**.
+
+| Spec | Value |
+|------|-------|
+| Rated operating temperature | **200 °C continuous** (both sides recommended < 200 °C); **230 °C intermittent** hot side |
+| Ceramic | Aluminum oxide |
+| AC resistance | 2.76 – 3.41 Ω |
+| Figure of merit | ZT = 0.71 |
+| Mounting | **Clamp at 1.4 MPa (200 psi)** with thermal grease or flexible graphite pads |
+| Thermal resistance | 2.21 – 2.37 °C/W |
+| Matching load | ~5.7 – 6.8 Ω (for optimum efficiency) |
+
+**Power generation, cold side fixed at 50 °C** (one atmosphere dry nitrogen):
+
+| Hot side | ΔT | Optimum power | Optimum voltage | V_oc | I_sc | η |
+|----------|----|---------------|-----------------|------|------|---|
+| 230 °C | 180 °C | **4.05 W** | 5.26 V | 9.45 V | 1.71 A | 4.97 % |
+| 170 °C | 120 °C | **2.12 W** | 3.66 V | 6.50 V | 1.32 A | 4.08 % |
+| 110 °C | 60 °C | **0.61 W** | 1.86 V | 3.28 V | 0.75 A | 2.39 % |
+
+### What this means for the design
+
+Interpolating to a **150 °C hot side** (25 % below the continuous rating) with a ~50 °C cold side
+(ΔT ≈ 100 °C) gives **~1.6 W per module** at ~3.1 V / ~5.4 V_oc.
+
+| Modules | Array power | Array operating voltage | Verdict |
+|---------|-------------|-------------------------|---------|
+| 2 | ~3.2 W | ~6.1 V | ✅ meets E1 (3–4 W) |
+| **3** | **~4.8 W** | **~9.2 V** | ✅ meets E1 with margin |
+
+So **E1 (3–4 W) is achievable with 2–3 modules** — no exotic module count needed.
+
+Consequences:
+
+- **MPPT setpoint:** V_mp/V_oc ≈ **0.57**. That confirms the fractional-open-circuit approach, and
+  it is comfortably inside the TPS54331 buck's input range.
+- **The cold side is the binding constraint.** ~150 W of heat must be rejected for ~4.8 W electrical
+  (η ≈ 3 %). With a practical fan-cooled heatsink in ~25 °C air the cold side will sit warmer than the
+  datasheet's 50 °C — say 60–75 °C — so expect ΔT ≈ 75–90 °C and **~3–4 W rather than 4.8 W**.
+  Heatsink sizing is therefore a first-class requirement, not an afterthought.
+- **Mounting is specified:** 1.4 MPa (200 psi) clamped, uniform pressure, with thermal grease or
+  graphite pads. This is a real mechanical requirement (clamp design), not a suggestion.
+- **Cold start (E6):** at low ΔT the array voltage falls to a few volts, which a plain 5 V buck cannot
+  use — so either accept a minimum operating ΔT, or use a **buck-boost** front end.
+- **Budget (M6):** modules are now the dominant cost. Their price still needs checking; if the premium
+  part breaks the $200 ceiling, comparable modules should be evaluated. *(Dimensions are in the
+  mechanical drawing on datasheet page 3 — not yet extracted; needed for the envelope check.)*
+
 ## Open items
 
-1. **TEG module datasheet — the gating unknown.** Module output at ΔT ≈ 70 °C, hot-side maximum
-   temperature, Vmp/Imp. Sets the module count and array topology, and therefore the converter
-   design and whether E1 is met.
-2. **USB role** — is the target charging a battery bank, powering USB loads, or both? This decides
-   whether USB-C **PD** negotiation is needed, or whether basic CC resistors suffice (E3).
-3. **Fireplace surface temperature** — how hot, and is the device left mounted while burning?
-   Decides the hot-side clamp design and the magnet grade (T1, T4).
-4. **Whether the existing sub-watt board is discarded or kept** as a low-power variant.
+1. ~~TEG module datasheet~~ **RESOLVED** — see section 8. Module count is 2–3 for E1.
+2. ~~USB role~~ **RESOLVED: both** — charging a bank *and* powering loads, so USB-C PD is in scope.
+   Open sub-question: which PD controller is stocked by JLCPCB.
+3. **Fireplace surface temperature — TBD.** Handled by design: the hot side is clamped to ~150 °C
+   whatever the surface does (T1). Still needed to choose the **magnet grade** (T4) and the
+   thermal-break thickness.
+4. **Module price and its impact on M6** — the dominant cost, still unverified.
+5. **Module physical dimensions** (datasheet page 3 drawing) — needed for the envelope check (P1).
+6. Whether the existing sub-watt board is discarded or kept as a low-power variant.
+\

@@ -88,7 +88,7 @@ Concrete choices for the ~3–4 W board. Every part number verified in the JLCPC
 
 | Element | Decision | Part |
 |---------|----------|------|
-| Front-end converter | **Buck**, 3 A, up to 28 V in, SOIC-8 | **TPS54331DR — C9865** (ext, 348 k stock) |
+| Front-end converter | **Buck**, 3 A, up to 28 V in, SOIC-8. Covers the ~6–9 V operating point and up to ~20 V open circuit. **Open:** at low ΔT the array drops below 5 V, so a **buck-boost** may be needed for cold start (E6) | **TPS54331DR — C9865** (ext, 348 k stock) |
 | MPPT approach | For a *resistive* source a constant-power load naturally drags the input toward ~V_oc/2 — the maximum-power point — so a buck with sensible input **UVLO** approximates MPPT. Add explicit fractional-V_oc regulation only if bench measurement earns it | — |
 | USB-C receptacle | 16-pin SMD | **TYPE-C-31-M-12 — C165948** (ext, 408 k) |
 | USB-A receptacle | SMD | **AF 10.0 QT-ZB6.8 — C456016** (ext, 21 k) |
@@ -189,6 +189,7 @@ Draft currently uses a **single root sheet** with block annotations; to be split
 
 | Date | Change |
 |------|--------|
+| 2026-10-10 | **TEG module datasheet obtained and extracted** (Coherent TG12-4, 3 pages) — closes the "datasheet verification pending" item open since day one. Verified: **200 °C continuous** rating (230 °C intermittent), AC resistance 2.76–3.41 Ω, **clamp at 1.4 MPa (200 psi)**, thermal resistance ~2.2 °C/W, and power/voltage/current tables at cold side 50 °C. **The earlier estimate was ~3× pessimistic**: at hot 170 °C a module makes **2.12 W** (not ~0.7 W), so **2 modules ≈ 3.2 W and 3 modules ≈ 4.8 W** at a 150 °C hot side — E1 is met with 2–3 modules. Also established: V_mp/V_oc ≈ 0.57 (fractional-V_oc MPPT confirmed), the **cold side is the binding constraint** (~150 W to reject for ~4.8 W electrical, so expect 3–4 W with a practical fan-cooled heatsink), and at low ΔT the array voltage falls below a 5 V buck's input so a buck-boost may be needed for cold start. Sourced via alldatasheet → Bing → Coherent's own PDF (the direct search engines were blocked from this environment; the PDF came from coherent.com) |
 | 2026-10-10 | **Project re-scoped by [REQUIREMENTS.md](REQUIREMENTS.md)**: fireplace-mounted wedge harvester, **~3–4 W**, 1 × USB-A + 1 × USB-C sharing the output, **fan-cooled** (no water), total BOM ≤ $200. The BQ25504 board (≤300 mW) becomes a validated sub-watt **reference**, not the deliverable. Corrected an earlier error: the first 5–10 W analysis assumed passive cooling at ΔT ≈ 50 °C; with fan-forced cooling at ΔT ≈ 70 °C per-module output roughly doubles, so a few watts needs 2–3 modules, not 10–20. Key new parts identified and verified in the JLCPCB catalogue: buck front end **TPS54331DR (C9865)**, USB-C receptacle **TYPE-C-31-M-12 (C165948)**, SMD USB-A **AF 10.0 QT-ZB6.8 (C456016)**; fan driver reuses AO3400A (C20917) |
 |------|--------|
 | 2026-10-08 | Tooling set up; `jlc-client` verified; BQ25504RGTT confirmed; BOM.md + PLAN.md created; draft KiCad project authored |
