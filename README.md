@@ -29,11 +29,32 @@ Settled — nothing here needs your input.
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | **Route the copper** | The one remaining design step. Suggested order: **GND pour** on B.Cu → power (`+5V`, `VSTOR`, `VBAT`, `TEG+`) → signals. Keep the MPPT divider (`R13`/`R14`) and sampling cap (`C3`) **short and away from switching nodes** — that node is high-impedance and noise-sensitive. Route interactively in KiCad's PCB editor (KiCad has no autorouter) |
+| 1 | **Route the copper** | The one remaining design step, and it needs the KiCad GUI. **A scripted autoroute was attempted and abandoned** (see below). Suggested order interactively: **GND pour** on B.Cu → power (`+5V`, `VSTOR`, `VBAT`, `TEG+`) → signals. Keep the MPPT divider (`R13`/`R14`) and sampling cap (`C3`) **short and away from switching nodes** — that node is high-impedance and noise-sensitive. Use ~0.2 mm tracks to fan out the VQFN-16 (a 0.3 mm track cannot escape 0.5 mm pitch) |
 | 2 | **Export fab files** | Gerbers + drill via `File ▸ Fabrication Outputs` in KiCad. For JLCPCB's `BOM.csv` / `CPL.csv` use KiCad's **Fabrication Toolkit** (or JLCPCB's plugin) — the pick-and-place rotation/axis conventions are easy to get subtly wrong, and a wrong rotation misplaces parts |
 | 3 | **Order the PCB** | JLCPCB assembles **all** parts now. ⚠️ `U1` `BQ25504RGTT` stock is only **7** — `C2876746` is the same part if it sells out |
 | 4 | **Bench-verify before trusting the TEGs** | Drive the input from a bench supply emulating the TEG (start ~1 V, low current limit); confirm the rail comes up and the fan starts |
 | 5 | **Then the thermal tests** | One-module baseline, two-module comparison, five cold starts, 0.5 W load — per [PLAN.md](PLAN.md) |
+
+## Routing — scripted attempt (abandoned)
+
+I wrote [scripts/route_board.py](scripts/route_board.py) (a 2-layer maze router with pad
+fanout) and iterated it against `kicad-cli` DRC. It got from **0% to ~95% connected**, but
+never reached a clean board:
+
+| Attempt | Routed | Clearance | Shorts | Unconnected |
+|---------|--------|-----------|--------|-------------|
+| loose clearance (halo 1) | all nets | 52 | 6 | 9 |
+| strict clearance (halo 2) | 4 nets short | 11 | 1 | 24 |
+
+The trade-off is fundamental to a naive grid router: a spacing tight enough to reach every
+pin leaves clearance violations, and one wide enough to be clean leaves connections
+unrouted. Fixing that properly means rip-up and retry or push-and-shove — what interactive
+routing gives you for free.
+
+**So the shipped board is left clean and unrouted** (DRC: no errors, just the unrouted
+connections), and the attempt is preserved at `build/TEG-routed-attempt.kicad_pcb` if you
+want to see it. Routing it by hand in KiCad is ~30–60 minutes for a board this size, and the
+result will be better than anything the script produced.
 
 ## Storage — what option D means
 
