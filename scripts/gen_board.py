@@ -35,6 +35,36 @@ PLACEMENT = {
 }
 BOARD_MARGIN = 4.0
 
+# Net classes. Note the constraint: net classes are per-NET, and the power/GND nets also
+# land on U1's 0.5 mm-pitch pins, so a nominal 0.5 mm power width cannot escape there
+# (a 0.3 mm track already collides). 0.25 mm is the widest that escapes 0.5 mm pitch and
+# is ample at these currents (tens of mA).
+NET_CLASSES = [
+    # Widths are 0.2 mm for everything: the power/GND nets also land on U1's 0.5 mm-pitch
+    # pins, and a wider track cannot escape there (0.3 mm already collides with neighbours,
+    # and the autorouter will not taper). At tens of mA, 0.2 mm is electrically fine.
+    # The class split still exists so wider widths can be set later, after a manual fanout.
+    ("Default", "This is the default net class.", 0.2, 0.2, 0.6, 0.3, []),
+    ("Power", "Power and ground rails.", 0.2, 0.2, 0.6, 0.3,
+     ["GND", "+5V", "VSTOR", "VBAT", "TEG+", "TEG-"]),
+]
+
+
+def net_class_text():
+    out = []
+    for name, desc, clearance, width, via_dia, via_drill, nets in NET_CLASSES:
+        lines = [f'  (net_class {name} "{desc}"',
+                 f"    (clearance {clearance})",
+                 f"    (trace_width {width})",
+                 f"    (via_dia {via_dia})",
+                 f"    (via_drill {via_drill})",
+                 "    (uvia_dia 0.3)",
+                 "    (uvia_drill 0.1)"]
+        lines += [f"    (add_net {n})" for n in nets]
+        lines.append("  )")
+        out.append("\n".join(lines))
+    return "\n".join(out)
+
 def load_footprint(name):
     """Parse TEG.pretty/<name>.kicad_mod into an s-expr tree."""
     path = FP_DIR / f"{name}.kicad_mod"
@@ -131,7 +161,7 @@ def main():
         "    (last_trace_width 0.25)\n"
         "    (trace_clearance 0.2)\n"
         "    (zone_clearance 0.3)\n"
-        "    (trace_min 0.2)\n"
+        "    (trace_min 0.15)\n"
         "    (via_size 0.6)\n"
         "    (via_drill 0.3)\n"
         "    (aux_axis_origin 0 0)\n"
@@ -170,6 +200,7 @@ def main():
         '  (paper "A4")',
         layers,
         setup,
+        net_class_text(),
         "",
         net0,
         nets,

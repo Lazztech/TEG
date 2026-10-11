@@ -1,6 +1,6 @@
 (module easyeda2kicad:CAP-SMD_BD8.0-L8.3-W8.3-LS9.3-FD-1 (layer F.Cu) (tedit 5DC5F6A4)
 	(attr through_hole)
-	(fp_text reference REF** (at 0 -4) (layer F.SilkS)
+	(fp_text reference REF** (at 0 -6.4) (layer F.SilkS)
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(fp_text value CAP-SMD_BD8.0-L8.3-W8.3-LS9.3-FD-1 (at 0 4) (layer F.Fab)

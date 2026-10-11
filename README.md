@@ -7,10 +7,9 @@ up a regulated 5 V rail for a Noctua 5 V PWM fan and a test load.
 Originally drafted on **Flux.ai**; this repo is the **KiCad** continuation, prepared for
 **JLCPCB — made and assembled**.
 
-> **Status: design complete, KiCad-validated, every part a JLCPCB catalogue part.
-> Not yet routed.** 33 parts placed in schematic and board with nets assigned. ERC has
-> only cosmetic warnings; board DRC reports **no clearance or short errors** — just the
-> unrouted connections. Remaining: **route the copper**, then export and order.
+> **Status: ROUTED and DRC-clean — ready to order.** 33 parts, every one a JLCPCB
+> catalogue part; board fully routed (FreeRouting) with **0 DRC violations and 0 unconnected
+> items**; fabrication outputs generated. Remaining: place the order and bench-test.
 
 ## Decisions made (and why)
 
@@ -29,32 +28,60 @@ Settled — nothing here needs your input.
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | **Route the copper** | The one remaining design step, and it needs the KiCad GUI. **A scripted autoroute was attempted and abandoned** (see below). Suggested order interactively: **GND pour** on B.Cu → power (`+5V`, `VSTOR`, `VBAT`, `TEG+`) → signals. Keep the MPPT divider (`R13`/`R14`) and sampling cap (`C3`) **short and away from switching nodes** — that node is high-impedance and noise-sensitive. Use ~0.2 mm tracks to fan out the VQFN-16 (a 0.3 mm track cannot escape 0.5 mm pitch) |
-| 2 | **Export fab files** | Gerbers + drill via `File ▸ Fabrication Outputs` in KiCad. For JLCPCB's `BOM.csv` / `CPL.csv` use KiCad's **Fabrication Toolkit** (or JLCPCB's plugin) — the pick-and-place rotation/axis conventions are easy to get subtly wrong, and a wrong rotation misplaces parts |
-| 3 | **Order the PCB** | JLCPCB assembles **all** parts now. ⚠️ `U1` `BQ25504RGTT` stock is only **7** — `C2876746` is the same part if it sells out |
-| 4 | **Bench-verify before trusting the TEGs** | Drive the input from a bench supply emulating the TEG (start ~1 V, low current limit); confirm the rail comes up and the fan starts |
-| 5 | **Then the thermal tests** | One-module baseline, two-module comparison, five cold starts, 0.5 W load — per [PLAN.md](PLAN.md) |
+| 1 | ~~Route the copper~~ | **Done** — FreeRouting, 0 DRC violations |
+| 2 | ~~Export fab files~~ | **Done** — gerbers, drill, position, BOM in `build/fab/` (verify CPL rotations) |
+| 3 | **Review and order** | Read `build/fab/TEG-routed.pdf` and confirm the layout; then order from JLCPCB. ⚠️ `U1` `BQ25504RGTT` stock is only **7** — `C2876746` is the same part if it sells out |
+| 4 | **Optional: add a GND pour** | GND is routed as traces so the board works as-is. A pour is a nice refinement — fill it in KiCad (**zones can't be filled from the CLI**) |
+| 5 | **Bench-verify before trusting the TEGs** | Drive the input from a bench supply emulating the TEG (start ~1 V, low current limit); confirm the rail comes up and the fan starts |
+| 6 | **Then the thermal tests** | One-module baseline, two-module comparison, five cold starts, 0.5 W load — per [PLAN.md](PLAN.md) |
 
-## Routing — scripted attempt (abandoned)
+## Routing — done with FreeRouting
 
-I wrote [scripts/route_board.py](scripts/route_board.py) (a 2-layer maze router with pad
-fanout) and iterated it against `kicad-cli` DRC. It got from **0% to ~95% connected**, but
-never reached a clean board:
+KiCad has no autorouter, so routing uses the standard **SPECCTRA round-trip**, scripted in
+[scripts/freeroute.sh](scripts/freeroute.sh):
 
-| Attempt | Routed | Clearance | Shorts | Unconnected |
-|---------|--------|-----------|--------|-------------|
-| loose clearance (halo 1) | all nets | 52 | 6 | 9 |
-| strict clearance (halo 2) | 4 nets short | 11 | 1 | 24 |
+1. KiCad (`pcbnew` python) exports the board as a **`.dsn`** — outline, pads, nets **and the
+   net-class rules**.
+2. **FreeRouting** (external Java autorouter) routes it and writes a **`.ses`** session file.
+3. KiCad imports the `.ses` back onto the board.
+4. `kicad-cli` DRC verifies the result.
 
-The trade-off is fundamental to a naive grid router: a spacing tight enough to reach every
-pin leaves clearance violations, and one wide enough to be clean leaves connections
-unrouted. Fixing that properly means rip-up and retry or push-and-shove — what interactive
-routing gives you for free.
+FreeRouting reported *0 unrouted, 0 violations* on both its routing and optimisation passes,
+and KiCad's own DRC agrees: **0 violations, 0 unconnected**. (It also does the rip-up-and-retry
+that a naive router can't — an earlier hand-written script in `scripts/route_board.py` reached
+~95 % but never clean, so it was abandoned; it's kept for reference.)
 
-**So the shipped board is left clean and unrouted** (DRC: no errors, just the unrouted
-connections), and the attempt is preserved at `build/TEG-routed-attempt.kicad_pcb` if you
-want to see it. Routing it by hand in KiCad is ~30–60 minutes for a board this size, and the
-result will be better than anything the script produced.
+### Net classes
+
+Set in [scripts/gen_board.py](scripts/gen_board.py) and exported into the DSN so the router
+obeys them:
+
+| Class | Nets | Track | Clearance | Via |
+|-------|------|-------|-----------|-----|
+| Default | all signals | 0.20 mm | 0.20 mm | 0.6/0.3 |
+| Power | `GND`, `+5V`, `VSTOR`, `VBAT`, `TEG+`, `TEG-` | 0.20 mm | 0.20 mm | 0.6/0.3 |
+
+**Why not wider power traces?** Net classes are per-*net*, and the power/GND nets also land on
+U1's 0.5 mm-pitch pins, where a wider track cannot escape (0.3 mm already collides with
+neighbours) and the autorouter will not taper. At tens of mA, 0.2 mm is electrically ample.
+The classes still exist so wider widths can be set later, after a manual fanout from U1.
+
+## Fabrication outputs
+
+Generated into `build/fab/` (gitignored — regenerate with the commands in
+[Opening the project](#opening-the-project)):
+
+| File | What |
+|------|------|
+| `TEG-*.gbl/.gtl/.gbs/.gts/.gbo/.gto/.gm1` + `TEG-job.gbrjob` | Gerbers (2 copper, 2 mask, 2 silk, edge) |
+| `TEG.drl` | Excellon drill |
+| `TEG-pos.csv` | Pick-and-place (`kicad-cli pcb export pos`) |
+| `TEG-BOM-jlcpcb.csv` | JLCPCB BOM — `Comment,Designator,Footprint,LCSC Part #` |
+| `TEG-routed.pdf`, `TEG-schematic.pdf` | Renders for review |
+
+⚠️ **Check the CPL rotations before ordering.** Position-file rotation conventions are a classic
+source of misplacement; compare `TEG-pos.csv` against KiCad's **Fabrication Toolkit** output (or
+JLCPCB's plugin) rather than trusting it blind.
 
 ## Storage — what option D means
 
@@ -113,6 +140,8 @@ the expected behaviour of this build, not a fault.
 | `scripts/gen_board.py` | Regenerates `TEG.kicad_pcb` (shares the netlist with `gen_schematic.py`) |
 | `scripts/validate.sh` | Runs KiCad ERC (schematic) and DRC (board); needs `kicad-cli` |
 | `scripts/jlc_lookup.py` | Queries JLCPCB's own parts API — id, library type, stock |
+| `scripts/freeroute.sh` | Routes the board via the SPECCTRA DSN→FreeRouting→SES round-trip, then DRAs |
+| `scripts/route_board.py` | *Abandoned* hand-written router (kept for reference; not used) |
 
 ## Opening the project
 
@@ -124,9 +153,16 @@ The schematic and board are **generated** — edit the part/net table in
 
 ```bash
 python3 scripts/gen_schematic.py   # -> hardware/TEG.kicad_sch
-python3 scripts/gen_board.py       # -> hardware/TEG.kicad_pcb
+python3 scripts/gen_board.py       # -> hardware/TEG.kicad_pcb (unrouted, wipes routing)
+./scripts/freeroute.sh             # route it (DSN -> FreeRouting -> SES -> DRC)
 ./scripts/validate.sh              # ERC + DRC (needs kicad-cli)
 python3 scripts/jlc_lookup.py "22uH inductor"   # search the JLCPCB catalogue
+
+# fabrication outputs
+KC=~/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli
+$KC pcb export gerbers -o build/fab/ hardware/TEG.kicad_pcb
+$KC pcb export drill --excellon-units mm -o build/fab/ hardware/TEG.kicad_pcb
+$KC pcb export pos --format csv --units mm -o build/fab/TEG-pos.csv hardware/TEG.kicad_pcb
 ```
 
 **Known cosmetic warnings** (safe to ignore): ERC reports 3 × `lib_symbol_mismatch` on the two
