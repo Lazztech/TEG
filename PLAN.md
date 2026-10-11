@@ -81,6 +81,26 @@ JLC_API_TOKEN="…" jlc-client --json C157471
 | D5 | Input connector = **screw terminal** | Field-flexible TEG wiring during trials |
 | D6 | **Two-stage** topology (BQ25504 → storage → MT3608) | Decouples harvester MPPT from load; buffers cold starts & fan inrush |
 
+## 4b. v2 power-path design decisions (in progress)
+
+Concrete choices for the ~3–4 W board. Every part number verified in the JLCPCB catalogue via
+`scripts/jlc_lookup.py`.
+
+| Element | Decision | Part |
+|---------|----------|------|
+| Front-end converter | **Buck**, 3 A, up to 28 V in, SOIC-8 | **TPS54331DR — C9865** (ext, 348 k stock) |
+| MPPT approach | For a *resistive* source a constant-power load naturally drags the input toward ~V_oc/2 — the maximum-power point — so a buck with sensible input **UVLO** approximates MPPT. Add explicit fractional-V_oc regulation only if bench measurement earns it | — |
+| USB-C receptacle | 16-pin SMD | **TYPE-C-31-M-12 — C165948** (ext, 408 k) |
+| USB-A receptacle | SMD | **AF 10.0 QT-ZB6.8 — C456016** (ext, 21 k) |
+| USB-C role | **Source (DFP)**: Rp on CC1/CC2 to VBUS. **56 kΩ advertises 500 mA/port** — honest for a 3–4 W shared output (22 kΩ = 1.5 A, 10 kΩ = 3 A if one fast port is wanted later) | **56 kΩ — C23206** (base) |
+| USB-A role | **DCP** (dedicated charging port): tie **D+ to D−**, no IC needed | — |
+| USB-C PD | **Not included yet** — only if reliable battery-bank charging is required (open question 2) | — |
+| Fan driver | Low-side N-MOSFET + gate resistor, reusing the existing part | **AO3400A — C20917** (base) |
+
+**Still blocked on inputs:** the module datasheet (module count → array voltage → the buck's input
+range and the V_oc/2 setpoint), the USB role (whether PD is needed), and the fireplace surface
+temperature (hot-side clamp and magnet grade).
+
 ## 5. KiCad project layout
 
 ```
