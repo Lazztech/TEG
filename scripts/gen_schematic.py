@@ -31,7 +31,7 @@ PARTS = [
                "6": "VBAT_OV", "7": "VRDIV", "8": "VBAT_UV", "9": "OK_HYST", "10": "OK_PROG",
                "11": "VBAT_OK", "12": "GND", "13": "GND", "14": "VBAT", "15": "VSTOR",
                "16": "SW_HV", "17": "GND"}),
-    dict(ref="L1", sym="FTC252010S4R7MBCA", fp="IND-SMD_L2.5-W2.0-VLS252012CX-150M", value="22uH", lcsc=TBD,
+    dict(ref="L1", sym="SWPA4020S220MT", fp="IND-SMD_L4.0-W4.0", value="22uH", lcsc="C82401",
          nets={"1": "SW_HV", "2": "TEG+"}),  # datasheet recommends 22 uH; part TBD, verify it fits the 1008 land
     # MPPT sample-and-hold network: ROC1/ROC2 set the harvesting voltage to a fraction of Voc.
     # ratio = ROC1/(ROC1+ROC2) -> 10M/10M = ~50% of Voc, matched-load MPP for a TEG (solar uses 78%).
@@ -47,7 +47,7 @@ PARTS = [
          nets={"1": "SW_5V", "2": "GND", "3": "FB_5V", "4": "VSTOR", "5": "VSTOR", "6": None}),
     dict(ref="C8", sym="CL10B103KB8NNNC", fp="C0603", value="10nF", lcsc="C1589",
          nets={"1": "VSTOR", "2": "GND"}),  # CBYP, near VSTOR/VSS per datasheet
-    dict(ref="L2", sym="FTC252010S4R7MBCA", fp="IND-SMD_L2.5-W2.0-VLS252012CX-150M", value="22uH", lcsc=TBD,
+    dict(ref="L2", sym="SWPA4020S220MT", fp="IND-SMD_L4.0-W4.0", value="22uH", lcsc="C82401",
          nets={"1": "VSTOR", "2": "SW_5V"}),
     dict(ref="D2", sym="1N5819WS", fp="SOD-323_L1.8-W1.3-LS2.5-RD", value="1N5819WS", lcsc="C191023",
          nets={"1": "+5V", "2": "SW_5V"}),  # MT3608 catch diode (asynchronous boost)
@@ -55,23 +55,23 @@ PARTS = [
          nets={"1": "+5V", "2": "GND"}),
     dict(ref="C7", sym="CL10A105KB8NNNC", fp="C0603", value="1uF", lcsc="C15849",
          nets={"1": "+5V", "2": "GND"}),
-    dict(ref="R8", sym="0603WAF1002T5E", fp="R0603", value=TBD, lcsc=TBD, nets={"1": "+5V", "2": "FB_5V"}),
-    dict(ref="R9", sym="0603WAF1002T5E", fp="R0603", value=TBD, lcsc=TBD, nets={"1": "FB_5V", "2": "GND"}),
+    dict(ref="R8", sym="0603WAF1002T5E", fp="R0603", value="73.2k", lcsc="C2933257", nets={"1": "+5V", "2": "FB_5V"}),
+    dict(ref="R9", sym="0603WAF1002T5E", fp="R0603", value="10k", lcsc="C25804", nets={"1": "FB_5V", "2": "GND"}),
     # BQ25504 threshold network, datasheet worked example (SLUSAH0G s9.2.1):
     # VBAT_OV 3.15 V, VBAT_UV 2.20 V, VBAT_OK 2.44 V, VBAT_OK_HYST 2.80 V.
     # Chain: VBAT -ROV1- VBAT_OV -ROV2- VRDIV -RUV1- VBAT_UV -RUV2- GND
-    dict(ref="R1", sym="0603WAF1003T5E", fp="R0603", value="5.90M", lcsc=TBD, nets={"1": "VBAT", "2": "VBAT_OV"}),
-    dict(ref="R2", sym="0603WAF1003T5E", fp="R0603", value="4.02M", lcsc=TBD, nets={"1": "VBAT_OV", "2": "VRDIV"}),
-    dict(ref="R3", sym="0603WAF1003T5E", fp="R0603", value="5.60M", lcsc=TBD, nets={"1": "VRDIV", "2": "VBAT_UV"}),
-    dict(ref="R4", sym="0603WAF1003T5E", fp="R0603", value="4.42M", lcsc=TBD, nets={"1": "VBAT_UV", "2": "GND"}),
+    dict(ref="R1", sym="0603WAF1003T5E", fp="R0603", value="5.90M", lcsc="C2076902", nets={"1": "VBAT", "2": "VBAT_OV"}),
+    dict(ref="R2", sym="0603WAF1003T5E", fp="R0603", value="4.02M", lcsc="C137708", nets={"1": "VBAT_OV", "2": "VRDIV"}),
+    dict(ref="R3", sym="0603WAF1003T5E", fp="R0603", value="5.60M", lcsc="C23190", nets={"1": "VRDIV", "2": "VBAT_UV"}),
+    dict(ref="R4", sym="0603WAF1003T5E", fp="R0603", value="4.42M", lcsc="C166806", nets={"1": "VBAT_UV", "2": "GND"}),
     dict(ref="R5", sym="0603WAF1002T5E", fp="R0603", value="0R", lcsc="C21189", nets={"1": "OT_PROG", "2": "GND"}),
     # OK chain: VBAT -ROK1- OK_HYST -ROK2- OK_PROG -ROK3- GND
-    dict(ref="R15", sym="0603WAF1003T5E", fp="R0603", value="4.42M", lcsc=TBD, nets={"1": "VBAT", "2": "OK_HYST"}),
-    dict(ref="R7", sym="0603WAF1003T5E", fp="R0603", value="4.22M", lcsc=TBD, nets={"1": "OK_HYST", "2": "OK_PROG"}),
-    dict(ref="R6", sym="0603WAF1003T5E", fp="R0603", value="1.43M", lcsc=TBD, nets={"1": "OK_PROG", "2": "GND"}),
+    dict(ref="R15", sym="0603WAF1003T5E", fp="R0603", value="4.42M", lcsc="C166806", nets={"1": "VBAT", "2": "OK_HYST"}),
+    dict(ref="R7", sym="0603WAF1003T5E", fp="R0603", value="4.22M", lcsc="C166807", nets={"1": "OK_HYST", "2": "OK_PROG"}),
+    dict(ref="R6", sym="0603WAF1003T5E", fp="R0603", value="1.43M", lcsc="C166898", nets={"1": "OK_PROG", "2": "GND"}),
     dict(ref="Q1", sym="AO3400A", fp="SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR", value="AO3400A", lcsc="C20917",
          nets={"1": "PWM_LOAD", "2": "GND", "3": "LOAD_SW"}),
-    dict(ref="R10", sym="0603WAF1002T5E", fp="R0603", value="1k", lcsc=TBD, nets={"1": "FAN_PWM", "2": "PWM_LOAD"}),
+    dict(ref="R10", sym="0603WAF1002T5E", fp="R0603", value="1k", lcsc="C21190", nets={"1": "FAN_PWM", "2": "PWM_LOAD"}),
     dict(ref="R12", sym="0603WAF1003T5E", fp="R0603", value="100k", lcsc="C25803", nets={"1": "PWM_LOAD", "2": "GND"}),
     dict(ref="J2", sym="PZ254V-11-04P_C2691448", fp="HDR-TH_4P-P2.54-V-M", value="FAN_4PIN", lcsc="C2691448",
          nets={"1": "GND", "2": "+5V", "3": "FAN_TACH", "4": "FAN_PWM"}),
@@ -139,11 +139,43 @@ def patch_pin_types(sym_node):
         for sub in p[4:]:
             if isinstance(sub, list) and sub[0] == "name":
                 nm = unq(sub[1])
-        key = (nm or "").strip().lower()
-        p[1] = ("power_in" if key in POWER_IN
-                else "output" if key in OUTPUT
-                else "passive")
+        p[1] = pin_type_for(nm)
     return sym_node
+
+
+def pin_type_for(name):
+    key = (name or "").strip().lower()
+    return ("power_in" if key in POWER_IN
+            else "output" if key in OUTPUT
+            else "passive")
+
+
+def normalize_library_pin_types():
+    """Rewrite pin electrical types in the project library in place.
+
+    The easyeda2kicad exports mark every pin `unspecified`, which trips ERC and also
+    makes the embedded schematic copy differ from the library (lib_symbol_mismatch).
+    Normalising the library once keeps the two identical and makes the library
+    electrically meaningful on its own.
+    """
+    import re
+    text = LIB.read_text()
+    pin_re = re.compile(r'\(pin\s+(\w+)\s+(\w+)\s+((?:[^()]|\([^()]*\))*?)\(name\s+"([^"]*)"',
+                        re.S)
+
+    def repl(m):
+        current, style, mid, name = m.group(1), m.group(2), m.group(3), m.group(4)
+        # only fix the catch-all type the EasyEDA exports use; never clobber a
+        # meaningful type (e.g. PWR_FLAG's power_out) or KiCad stops driving nets
+        if current != "unspecified":
+            return m.group(0)
+        want = pin_type_for(name)
+        return f'(pin {want} {style} {mid}(name "{name}"'
+
+    new, n = pin_re.subn(repl, text)
+    if new != text:
+        LIB.write_text(new)
+        print(f"  normalized {n} pin types in {LIB.name}")
 
 # Nets that source power; each gets a PWR_FLAG so power_in pins are "driven"
 POWER_FLAGS = ["GND", "+5V", "VBAT", "VSTOR", "TEG+"]
@@ -224,6 +256,20 @@ def load_library():
     lib = next(it for it in root if isinstance(it, list) and it[0] == "kicad_symbol_lib")
     return {unq(it[1]): it for it in lib if isinstance(it, list) and it[0] == "symbol"}
 
+def raw_symbol_block(text, name):
+    """Return the exact source text of a top-level symbol block (preserves formatting,
+    so the copy embedded in the schematic matches the library byte-for-byte)."""
+    i = text.index(f'(symbol "{name}"')
+    depth = 0
+    for j in range(i, len(text)):
+        if text[j] == "(":
+            depth += 1
+        elif text[j] == ")":
+            depth -= 1
+            if depth == 0:
+                return text[i:j + 1]
+    raise ValueError(f"unbalanced symbol block for {name}")
+
 def ensure_pwr_flag_in_lib():
     """Add PWR_FLAG to the project library so lib-linked lookups succeed."""
     syms = load_library()
@@ -299,13 +345,18 @@ def main():
     if missing:
         raise SystemExit(f"symbols missing from library: {missing}")
 
+    normalize_library_pin_types()
+    syms = load_library()   # reload after normalising
+
     used = {p["sym"] for p in PARTS}
-    flag_node, _ = parse_sexpr(PWR_FLAG_DEF)
-    flag_node = flag_node[0]
-    lib_symbols = [dump([flag_node[0], '"TEG:PWR_FLAG"'] + flag_node[2:])]
+    lib_text = LIB.read_text()
+    # embed the library's own text (renamed with the nickname) so the schematic copy
+    # is byte-identical to the library and KiCad reports no lib_symbol_mismatch
+    lib_symbols = [raw_symbol_block(lib_text, "PWR_FLAG").replace(
+        '(symbol "PWR_FLAG"', '(symbol "TEG:PWR_FLAG"', 1)]
     for name in sorted(used):
-        node = patch_pin_types(syms[name])
-        lib_symbols.append(dump([node[0], f'"TEG:{name}"'] + node[2:]))
+        lib_symbols.append(raw_symbol_block(lib_text, name).replace(
+            f'(symbol "{name}"', f'(symbol "TEG:{name}"', 1))
 
     # auto-flow placement (columns wrap when tall enough); snapped to the 1.27 mm
     # connection grid so pin/wire endpoints stay on-grid for ERC

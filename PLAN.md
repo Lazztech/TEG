@@ -28,6 +28,7 @@ Thermal/mechanical context carried over from the Flux.ai plan:
 | KiCad app / `kicad-cli` | **not installed** | Needed to render/validate; see Open questions |
 | `jlc-client` (JLCPCB parts) | **installed globally** | Friend's hosted instance; needs token for component fetch |
 | `easyeda2kicad` CLI | **paused** | Superseded by `jlc-client`; left installed, source edits reverted |
+| `scripts/jlc_lookup.py` | **added** | Queries **JLCPCB's own parts API** (id, library type, stock). Needed because `jlc-client`'s search index is degraded |
 | `JLC_API_TOKEN` | provided by user (session only) | Token starts with `-`; must be shell-quoted, e.g. `--token="…"` |
 
 ### jlc-client command patterns that work
@@ -55,7 +56,15 @@ JLC_API_TOKEN="…" jlc-client --json C157471
    **Use a plain `--query`** (or the attribute search) to find the right part.
 3. **BQ25504RGTT (C157471) is stocked** and was the winning harvester front-end. Its full
    symbol/footprint were retrieved (embedded in `--json` output) — recorded in BOM.
-4. **The component endpoint is intermittent.** `--json` / `--symbol` / `--footprint` / `--3d`
+4. **`jlc-client`'s *search* index is degraded** (2026-10-10): it returns the same high-stock
+   parts for every query (`MT3608`, `5.9MΩ`, `supercapacitor` all returned an identical list),
+   so it cannot be used to source parts. Worked around with `scripts/jlc_lookup.py`, which uses
+   JLCPCB's own `selectSmtComponentList` API and was reliable. Individual component *fetches*
+   by LCSC id still work well.
+5. **JLCPCB stocks no supercapacitors and no batteries** — confirmed (0 results for
+   `supercapacitor`, `EDLC`, `5.5V 1F`, `0.1F 5.5V`). They cannot be machine-assembled; see the
+   storage decision in [BOM.md](BOM.md).
+6. **The component endpoint is intermittent.** `--json` / `--symbol` / `--footprint` / `--3d`
    intermittently return `{"error":"Component … not found on EasyEDA/LCSC"}` for *every* part,
    then recover. This is a transient outage / rate-limit on the hosted FaaS function — **not** a
    part-availability problem. Symbols and footprints were captured on a retry; **3D WRL models are
@@ -129,9 +138,11 @@ Draft currently uses a **single root sheet** with block annotations; to be split
       TI's design equations (hand-derivation from the PDF is unreliable; equations are images).
 - [ ] **MPPT ratio confirmation:** draft uses R13/R14 = 10 MΩ/10 MΩ → ≈50 % of Voc
       (TEG matched load). Verify against measured TEG MPP; consider making it selectable.
-- [ ] **JLCPCB part selection** for the 8 high-ohm 1 % resistors (10 MΩ, 5.9/4.02/5.6/4.42/4.22/1.43 MΩ)
-      and the 22 µH inductor — all extended parts; the public search API was unreliable,
-      so these need picking with IDs from JLCPCB directly.
+- [x] **JLCPCB part selection** — all values found and verified in the catalogue, including the
+      odd E96 resistors (C2076902, C137708, C23190, C166806, C166807, C166898) and the 22 µH
+      inductor (C82401). `BQ25504RGTT` (C157471) is **low stock (7)**; fallback `C2876746` (21).
+- [ ] **Decide the storage element** (BOM.md options A–D) — blocks board placement and routing.
+- [x] MT3608 feedback divider computed: 73.2 k / 10 k → 5.0 V.
 - [ ] **Fan inrush vs. 5 V rail:** MT3608 sizing + output bulk to survive NF-A8 startup.
 - [ ] **Test-load interface:** fixed 0.5 W resistor, electronic load, or connector only? (J3 present.)
 - [ ] **`VBAT_OK`** left unconnected (ERC warns) — wire to a status LED or test point on the storage decision?
@@ -163,4 +174,5 @@ Draft currently uses a **single root sheet** with block annotations; to be split
 | 2026-10-09 | Board draft started: `scripts/gen_board.py` generates `TEG.kicad_pcb` from the **same** part/net table (30 footprints placed in a block layout, 82 pads / 81 netted, ratsnest-only, ~104×84 mm outline). Board is legacy-format (KiCad 5 `20171130`) because the fetched footprints are legacy-style; modern KiCad migrates on open |
 | 2026-10-09 | **KiCad 10.0.6 installed** (~/Applications, no sudo — Homebrew cask needs admin). Real validation now runs: ERC reduced 174 → 1 warning by (a) snapping placements to the 1.27 mm connection grid, (b) mapping the fetched symbols' `unspecified` pin types to power_in/output/passive by pin name, (c) adding PWR_FLAGs on GND/+5V/VBAT/VSTOR/TEG+ (def pulled from the installed KiCad power lib), (d) no-connect marker on MT3608 pin 6. Remaining ERC warning: `VBAT_OK` isolated label — intentional, reserved for status LED/test point. **DRC: 0 violations** (59 unconnected = unrouted ratsnest, expected). PDF renders in `build/` |
 | 2026-10-09 | **Storage decided: supercapacitor** (0.22–0.47 F, 5.5 V). **MPPT gap found and fixed:** the BQ25504 has MPPT built in, but the draft was *missing its sampling network* — added R13/R14 (10 MΩ/10 MΩ → ≈50 % of Voc, TEG matched-load, vs the datasheet's solar 78 %) and set CREF/CBYP = 10 nF (C1589). Also fixed the OV/UV chain order to the datasheet topology, added the missing third OK-chain resistor (R15), and corrected L1/L2 to the datasheet-recommended 22 µH. 32 parts / 85 pins; ERC 1 warning, DRC 0 violations. BOM rev B |
+| 2026-10-10 | **All parts sourced from the JLCPCB catalogue and verified** (id + library type + stock) using a new `scripts/jlc_lookup.py` (JLCPCB's own API) because `jlc-client`'s search index had degraded to returning identical high-stock lists for every query. Confirmed **JLCPCB stocks no supercapacitors or batteries** (0 results), so the two open decisions are (a) how to add storage and (b) routing. MT3608 divider computed (73.2 k/10 k = 5.0 V); ERC has 2 cosmetic `lib_symbol_mismatch` warnings on the new inductor symbol (embedded text is byte-identical to the library — unresolved KiCad quirk) alongside the 1 intentional warning. BOM rev C |
 | 2026-10-10 | R13/R14 given a real part (**C114606**, 10 MΩ 1 % 0603). Sourcing reality recorded: JLCPCB does **not stock supercapacitors** (hand-solder), and the six odd E96 resistors are standard parts but unresolvable through the degraded public search API. Removed a duplicate `PWR_FLAG` entry from the symbol library. **README expanded** with the settled decisions, a remaining-tasks checklist, the parts-to-source table, and the power-budget expectation |
