@@ -118,6 +118,41 @@ library type, stock). Highlights:
 | `R10` / `R13`,`R14` | 1 kΩ / 10 MΩ | C21190 / C114606 | ok |
 | `J1`,`J3` / `J2` | KF128 screw terminal / 4-pin fan header | C474952 / C2691448 | ok |
 
+## Connectors & wiring
+
+| Ref | Type | Pins | Purpose |
+|-----|------|------|---------|
+| **J1** | 2-pos screw terminal (`KF128-5.08-2P`) | 1: `TEG+`, 2: `TEG-` | **TEG array input** |
+| **J2** | 4-pin header, 2.54 mm | 1: `GND`, 2: `+5V`, 3: `FAN_TACH`, 4: `FAN_PWM` | Noctua fan |
+| **J3** | 2-pos screw terminal (`KF128-5.08-2P`) | 1: `LOAD_SW` (switched), 2: `+5V` | 5 V test load, switched by Q1 |
+
+### Wiring two TEGs in series (current 2-position J1)
+
+```
+TEG A(-) ──┬── TEG B(+)          # series junction, made off-board in the wiring
+           │
+TEG A(+) ──┴── J1 pin 1  (TEG+)
+TEG B(-) ────── J1 pin 2  (TEG-)
+```
+
+**Series doubles the voltage and leaves the current unchanged** — which is what you want at
+low ΔT, where each module produces only a fraction of a volt. Parallel would double the current
+at the same low voltage instead.
+
+⚠️ **Limitation of the 2-position terminal:** the series junction is made in the wiring, so the
+two modules **cannot be measured independently at the board**, and running the one-module
+baseline means rewiring the string. The plan asks to keep module leads accessible for
+independent measurement. A **3-position** terminal (`KF128-5.08-3P`, LCSC `C474953`, in stock)
+would bring the midpoint onto the board — `TEG_A+`, `midpoint`, `TEG_B-` — making each module
+meterable and the baseline a no-rewire change. Roughly 5 mm wider, so it needs a placement
+nudge and a reroute.
+
+### Fan
+
+There is **no MCU on the board**, so `FAN_PWM` (J2 pin 4) must be driven by an external source —
+a bench supply, signal generator, or your instrumentation. `FAN_TACH` (pin 3) has a 10 kΩ
+pull-up to `+5V` (R11) so you can read fan speed. Feed the fan from `+5V` (pin 2) and `GND` (pin 1).
+
 ## What to expect when you test
 
 **Two TG12-4 modules produce only a few hundred mW at useful ΔT, while the fan draws
