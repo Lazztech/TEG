@@ -7,9 +7,10 @@ up a regulated 5 V rail for a Noctua 5 V PWM fan and a test load.
 Originally drafted on **Flux.ai**; this repo is the **KiCad** continuation, prepared for
 **JLCPCB — made and assembled**.
 
-> **Status: ROUTED and DRC-clean — ready to order.** 33 parts, every one a JLCPCB
-> catalogue part; board fully routed (FreeRouting) with **0 DRC violations and 0 unconnected
-> items**; fabrication outputs generated. Remaining: place the order and bench-test.
+> **Status: the sub-watt board is complete, routed, DRC-clean and orderable — but it is now a
+> REFERENCE, not the deliverable.** [REQUIREMENTS.md](REQUIREMENTS.md) re-scopes the project to a
+> **fireplace-mounted, wedge-shaped harvester producing ~3–4 W** with USB-A and USB-C output. At
+> ~3–4 W the BQ25504 (max input power ≤ 300 mW) cannot be used, so a new power board is in design.
 
 ## Decisions made (and why)
 
@@ -164,7 +165,8 @@ the expected behaviour of this build, not a fault.
 
 | Path | What it is |
 |------|------------|
-| [BOM.md](BOM.md) | Bill of materials, MPPT explanation, storage decision |
+| [REQUIREMENTS.md](REQUIREMENTS.md) | **Whole-device requirements** — electrical, mechanical, thermal/safety, manufacturing, and the system BOM split into *from JLCPCB* vs *buy separately* |
+| [BOM.md](BOM.md) | Board bill of materials (the sub-watt reference design) |
 | [PLAN.md](PLAN.md) | Living plan: findings, decisions, open questions, changelog |
 | `hardware/TEG.kicad_pro` | KiCad project |
 | `hardware/TEG.kicad_sch` | Root schematic (auto-generated — nets defined by pin labels) |
