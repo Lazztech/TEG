@@ -29,7 +29,7 @@ PARTS = [
     dict(ref="U1", sym="BQ25504RGTT", fp="VQFN-16_L3.0-W3.0-P0.50-TL-EP", value="BQ25504RGTT", lcsc="C157471",
          nets={"1": "GND", "2": "TEG+", "3": "VOC_SAMP", "4": "VREF_SAMP", "5": "OT_PROG",
                "6": "VBAT_OV", "7": "VRDIV", "8": "VBAT_UV", "9": "OK_HYST", "10": "OK_PROG",
-               "11": "VBAT_OK", "12": "GND", "13": "GND", "14": "VBAT", "15": "VSTOR",
+               "11": None, "12": "GND", "13": "GND", "14": "VBAT", "15": "VSTOR",
                "16": "SW_HV", "17": "GND"}),
     dict(ref="L1", sym="SWPA4020S220MT", fp="IND-SMD_L4.0-W4.0", value="22uH", lcsc="C82401",
          nets={"1": "SW_HV", "2": "TEG+"}),  # datasheet recommends 22 uH; part TBD, verify it fits the 1008 land
@@ -39,6 +39,10 @@ PARTS = [
     dict(ref="R14", sym="0603WAF1002T5E", fp="R0603", value="10M", lcsc="C114606", nets={"1": "VOC_SAMP", "2": "GND"}),
     dict(ref="C3", sym="CL10B103KB8NNNC", fp="C0603", value="10nF", lcsc="C1589",
          nets={"1": "VREF_SAMP", "2": "GND"}),  # CREF, low-leakage per datasheet
+    # Option D storage: electrolytic buffer on VBAT (JLCPCB-assembled). Polarity matters:
+    # pin 1 = +. Verify against the footprint silkscreen before assembly.
+    dict(ref="C2", sym="RVT0J102M08101000UF6.3V", fp="CAP-SMD_BD8.0-L8.3-W8.3-LS9.3-FD-1",
+         value="1000uF", lcsc="C970711", nets={"1": "VBAT", "2": "GND"}),
     dict(ref="C4", sym="CL21A106KAYNNNE", fp="C0805", value="10uF", lcsc="C15850",
          nets={"1": "VSTOR", "2": "GND"}),
     dict(ref="C5", sym="CL21A106KAYNNNE", fp="C0805", value="10uF", lcsc="C15850",
@@ -82,9 +86,9 @@ PARTS = [
 
 NOTES = (
     "DRAFT — nets defined by labels at each pin; no routed wires yet.\\n"
-    "TBD: storage element on VBAT (supercap vs Li-ion); programming resistors R1-R9\\n"
-    "pending BQ25504/MT3608 datasheet math. External PWM source drives FAN_PWM\\n"
-    "(fan speed + test-load gate via R10/R12)."
+    "Storage: 1000uF electrolytic buffer on VBAT (JLCPCB-assembled, polarised - check pin 1).\\n"
+    "There is no energy store beyond this buffer, so the fan runs only while the TEGs\\n"
+    "supply power; VBAT_OK is left unconnected (available later for load gating)."
 )
 
 # ---------------------------------------------------------------- s-expr helpers
@@ -165,9 +169,9 @@ def normalize_library_pin_types():
 
     def repl(m):
         current, style, mid, name = m.group(1), m.group(2), m.group(3), m.group(4)
-        # only fix the catch-all type the EasyEDA exports use; never clobber a
-        # meaningful type (e.g. PWR_FLAG's power_out) or KiCad stops driving nets
-        if current != "unspecified":
+        # never clobber a power type (e.g. PWR_FLAG's power_out drives nets);
+        # everything else is normalised from the pin name
+        if current in ("power_in", "power_out"):
             return m.group(0)
         want = pin_type_for(name)
         return f'(pin {want} {style} {mid}(name "{name}"'
@@ -217,7 +221,7 @@ PWR_FLAG_DEF = None  # resolved lazily in main() (dump() must exist first)
 def emit_pwr_flag(net, x, y):
     return (
         f'\t(symbol\n\t\t(lib_id "TEG:PWR_FLAG")\n\t\t(at {fmt(x)} {fmt(y)} 0)\n\t\t(unit 1)\n'
-        f'\t\t(exclude_from_sim no) (in_bom no) (on_board yes) (dnp no) (fields_autoplaced yes)\n'
+        f'\t\t(exclude_from_sim no) (in_bom no) (on_board yes) (dnp no)\n'
         f'\t\t(uuid "{new_uuid()}")\n'
         f'\t\t(property "Reference" "#FLG{net}" (at {fmt(x)} {fmt(y + 3.81)} 0) '
         f'(effects (font (size 1.27 1.27)) hide))\n'
@@ -293,7 +297,7 @@ def emit_instance(part, pins, pos):
     bbox = part["_bbox"]
     body_h = (bbox[3] - bbox[2]) if bbox else 10
     out = [f'\t(symbol\n\t\t(lib_id "TEG:{part["sym"]}")\n\t\t(at {fmt(x)} {fmt(y)} 0)\n\t\t(unit 1)\n'
-           f'\t\t(exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced yes)\n'
+           f'\t\t(exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)\n'
            f'\t\t(uuid "{new_uuid()}")']
     out.append(f'\t\t(property "Reference" "{part["ref"]}" (at {fmt(x)} {fmt(y - body_h / 2 - 3)} 0) '
                f'(effects (font (size 1.27 1.27))))')

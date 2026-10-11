@@ -267,4 +267,23 @@
       (pin passive line (at -5.08 0.00 0) (length 0.762) (name "1" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
     )
   )
+
+  (symbol "RVT0J102M08101000UF6.3V"
+    (in_bom yes)
+    (on_board yes)
+    (property "Reference" "C" (id 0) (at 0 81.28 0) (effects (font (size 1.27 1.27)) ))
+    (property "Value" "RVT0J102M0810 1000UF 6.3V" (id 1) (at 0 71.12 0) (effects (font (size 1.27 1.27)) ))
+    (property "Footprint" "TEG:CAP-SMD_BD8.0-L8.3-W8.3-LS9.3-FD-1" (id 2) (at 0 68.58 0) (effects (font (size 1.27 1.27)) hide))
+    (property "LCSC Part" "C970711" (id 3) (at 0 66.04 0) (effects (font (size 1.27 1.27)) hide))
+    (symbol "RVT0J102M08101000UF6.3V_0_1"
+      (arc (start -96.66 74.45) (mid -92.32 75.79) (end -96.64 77.99) (stroke (width 0) (type default) (color 0 0 0 0)) (fill (type none)))
+      (polyline (pts (xy -98.30 77.98) (xy -98.30 74.42)) (stroke (width 0) (type default) (color 0 0 0 0)) (fill (type none)))
+      (polyline (pts (xy -100.33 76.20) (xy -98.30 76.20)) (stroke (width 0) (type default) (color 0 0 0 0)) (fill (type none)))
+      (polyline (pts (xy -97.28 76.20) (xy -95.25 76.20)) (stroke (width 0) (type default) (color 0 0 0 0)) (fill (type none)))
+      (polyline (pts (xy -100.08 77.47) (xy -99.06 77.47)) (stroke (width 0) (type default) (color 0 0 0 0)) (fill (type none)))
+      (polyline (pts (xy -99.57 77.98) (xy -99.57 76.96)) (stroke (width 0) (type default) (color 0 0 0 0)) (fill (type none)))
+      (pin passive line (at -102.87 76.20 0) (length 2.54) (name "1" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at -92.71 76.20 180) (length 2.54) (name "2" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))
+    )
+  )
 )

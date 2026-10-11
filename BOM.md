@@ -2,11 +2,12 @@
 
 **Project:** Thermal Energy Harvesting Prototype (TEG power-conditioning board)
 **Target assembly:** **JLCPCB — made and assembled** (SMT + THT)
-**Revision:** Draft C — 2026-10-10
+**Revision:** Draft D — 2026-10-10
 **Status:** Every part below is **verified present in the JLCPCB catalogue** via
-[tools](scripts/jlc_lookup.py). Draft netlist = 32 parts / 85 labelled pins; ERC 1 intentional
-+ 2 cosmetic warnings, board DRC **0 violations**. One open decision: the storage element
-(see below). See [PLAN.md](./PLAN.md).
+[scripts/jlc_lookup.py](scripts/jlc_lookup.py). Draft netlist = 33 parts / 86 labelled pins.
+**Storage decided: electrolytic buffer, 100 % JLCPCB-assembled.** ERC clean apart from 3
+cosmetic warnings; board DRC clean apart from 1 cosmetic silkscreen warning. Remaining work:
+**routing**. See [PLAN.md](./PLAN.md).
 
 > **How parts were verified.** `jlc-client`'s *search* goes through a public index that is
 > currently degraded (it returns high-stock parts regardless of query). This BOM was therefore
@@ -16,23 +17,29 @@
 
 ---
 
-## ⚠️ Open decision — the storage element
+## ✅ Storage decision — electrolytic buffer only (100 % JLCPCB)
 
-**JLCPCB does not stock supercapacitors.** Confirmed against their own API: `supercapacitor`,
-`EDLC`, `5.5V 1F`, `0.1F 5.5V` all return **0 results**. (They don't ship batteries either.)
-So the energy-storage part cannot be machine-assembled — everything else can.
+**Chosen: option D.** JLCPCB stocks **no supercapacitors and no batteries** (verified against
+their own API — `supercapacitor`, `EDLC`, `5.5V 1F`, `0.1F 5.5V` all return 0 results), so those
+cannot be machine-assembled. Option D keeps the board **100 % JLCPCB-assembled** by using a
+**1000 µF 6.3 V SMD electrolytic** (`C970711`) as the storage/buffer element.
 
-Options, in order of recommendation:
+**What this means, honestly:**
 
-| # | Option | Design change | Energy stored | Effort / notes |
-|---|--------|---------------|---------------|----------------|
-| **A** | **Hand-solder one supercap** (2 leads) | None | 0.47 F, 3.15→2.2 V ≈ **1.2 J ≈ 2–4 s fan** | 2 solder joints. JLCPCB assembles the entire board; you add one part. Buy separately (~$1–3; e.g. Panasonic `EEC-S0H`, Eaton `HV` series). **Recommended** |
-| **B** | **Plug-in supercap** — add a 2-pin header (JLCPCB-assembled), plug in a supercap pigtail/module | Footprint only | same as A | **Zero soldering.** Slightly bulkier. Good if you don't own an iron |
-| **C** | **Coin-cell holder** (JLCPCB-assembled) + user-inserted LiFePO₄ cell | Threshold network (OV ≈ 3.6 V) | Hours of retention | Whole board machine-assembled **and** no soldering, but needs the threshold network recomputed and reintroduces cell handling (LiFePO₄ is the safer chemistry) |
-| **D** | **Electrolytic buffer only** (e.g. 2200 µF, JLCPCB-assembled) | Storage removed from the concept | ≈ 11 mJ (**0.02 s**) | 100 % JLCPCB, no hand work — but it **cannot run the fan**. The fan would only turn while the TEGs deliver power directly. Simplest, least capable |
+- The BQ25504 needs *some* storage on VBAT — the datasheet's own reference shows ">100 µF" — and
+  1000 µF satisfies that and holds the rail steady.
+- But it stores only **≈5 mJ**, versus ≈1.2 J for a supercap. So **the fan cannot run from
+  storage**: it turns only while the TEG array is supplying enough power directly (i.e. at high ΔT).
+- That is arguably the *most informative* configuration for a first prototype — you will see
+  exactly when the harvest can drive the fan — but it does mean "fan runs for a few seconds from
+  storage" is **not** a capability of this build.
+- `VBAT_OK` is therefore left unconnected (no-connect marker). Wiring it to gate the MT3608 `EN`
+  is the natural upgrade if a real store is added later.
+- ⚠️ **The electrolytic is polarised**: pin 1 = +. **Verify against the footprint silkscreen
+  before assembly.**
 
-**A and B preserve the intended design and the test goals; C extends runtime; D is the
-"100 % JLCPCB" fallback that gives up fan storage.** Nothing else on the board is affected.
+Cycling it to a real energy store later is a one-part change (see the tradeoff table in
+[PLAN.md](PLAN.md) §6).
 
 ## Functional blocks
 
@@ -92,7 +99,7 @@ input to that fraction.
 | C7 | 1 | 1 µF | C15849 | 0603 X5R | **base** | 8.6 M | +5 V HF decoupling |
 | J1, J3 | 2 | **KF128-5.08-2P** | C474952 | THT P=5.08 mm | expand | 33 k | TEG input + test-load output |
 | J2 | 1 | **PZ254V-11-04P** | C2691448 | THT P=2.54 mm | expand | 933 k | Fan header (GND/+5V/Tach/PWM) |
-| — | 1 | **storage** | *see decision* | — | — | — | **Not machine-assembled** |
+| C2 | 1 | **1000 µF 6.3 V electrolytic** | C970711 | SMD D8×L10.2 mm | expand | 1 888 | Storage/buffer on VBAT (option D). **Polarised — check pin 1** |
 
 ### Threshold values (datasheet worked example, SLUSAH0G §9.2.1)
 
@@ -108,6 +115,6 @@ Conservative and datasheet-verified. Usable energy 3.15→2.2 V is limited (≈2
 - [x] Draft netlist generated ([scripts/gen_schematic.py](scripts/gen_schematic.py)) — 32 parts, 85 labelled pins
 - [x] **Board DRC: 0 violations** (63 unconnected = unrouted ratsnest)
 - [x] MT3608 feedback divider computed → 73.2 k / 10 k = 5.0 V
-- [ ] **Decide the storage element** (options A–D above) — blocks board placement + routing
-- [ ] Route copper + GND pour
+- [x] Storage decided (option D) and added to the netlist/board
+- [ ] **Route copper + GND pour** ← the remaining work
 - [ ] Export Gerbers/drill + JLCPCB `BOM.csv` / `CPL.csv`
