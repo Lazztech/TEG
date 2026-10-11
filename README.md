@@ -77,7 +77,8 @@ Generated into `build/fab/` (gitignored — regenerate with the commands in
 | `TEG.drl` | Excellon drill |
 | `TEG-pos.csv` | Pick-and-place (`kicad-cli pcb export pos`) |
 | `TEG-BOM-jlcpcb.csv` | JLCPCB BOM — `Comment,Designator,Footprint,LCSC Part #` |
-| `TEG-routed.pdf`, `TEG-schematic.pdf` | Renders for review |
+| `TEG-routed.pdf`, `TEG-schematic.pdf` | 2D renders for review (copper visible here) |
+| `build/render/TEG-*.png` | **3D renders** (top / isometric / bottom / harvester close-up) — see [scripts/render.sh](scripts/render.sh) |
 
 ⚠️ **Check the CPL rotations before ordering.** Position-file rotation conventions are a classic
 source of misplacement; compare `TEG-pos.csv` against KiCad's **Fabrication Toolkit** output (or
@@ -140,7 +141,8 @@ the expected behaviour of this build, not a fault.
 | `scripts/gen_board.py` | Regenerates `TEG.kicad_pcb` (shares the netlist with `gen_schematic.py`) |
 | `scripts/validate.sh` | Runs KiCad ERC (schematic) and DRC (board); needs `kicad-cli` |
 | `scripts/jlc_lookup.py` | Queries JLCPCB's own parts API — id, library type, stock |
-| `scripts/freeroute.sh` | Routes the board via the SPECCTRA DSN→FreeRouting→SES round-trip, then DRAs |
+| `scripts/freeroute.sh` | Routes the board via the SPECCTRA DSN→FreeRouting→SES round-trip, then DRCs |
+| `scripts/render.sh` | Renders 3D views of the board (with component bodies) into `build/render/` |
 | `scripts/route_board.py` | *Abandoned* hand-written router (kept for reference; not used) |
 
 ## Opening the project
