@@ -7,11 +7,10 @@ backs up a regulated 5 V rail for a Noctua 5 V PWM fan and a test load.
 Originally drafted on **Flux.ai**; this repo is the **KiCad** continuation, prepared
 for **JLCPCB** fabrication (SMT + THT).
 
-> **Status: design complete and KiCad-validated; board not yet routed.**
-> 32 parts placed in both schematic and board with nets assigned. ERC passes with
-> 1 intentional warning; board DRC passes with **0 violations**. Remaining work is
-> routing copper, sourcing a few parts, and building it — see
-> [Remaining tasks](#remaining-tasks--from-here-to-a-working-prototype).
+> **Status: design complete, KiCad-validated, and every part sourced from the JLCPCB
+> catalogue.** 32 parts placed in both schematic and board with nets assigned; board DRC
+> passes with **0 violations**. Two things remain before ordering: **one decision** (the
+> storage element — see below) and **routing the copper**.
 
 ## Decisions made (and why)
 
@@ -29,22 +28,37 @@ These are settled — no further choices needed for a first prototype.
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | **Route the copper** | The main remaining work. Board is placed and netted but unrouted (ratsnest only). Start with a ground pour, then power, then signals — or use KiCad's interactive router |
-| 2 | **Buy the remaining parts** | See below |
+| 1 | **Decide the storage element** | The one open design question — options A–D above |
+| 2 | **Route the copper** | The main remaining work. Board is placed and netted but unrouted (ratsnest only). Ground pour first, then power, then signals |
 | 3 | **Export fab files** | Gerbers + drill, plus JLCPCB `BOM.csv` / `CPL.csv` (no script yet) |
 | 4 | **Order the PCB** | JLCPCB SMT assembly can place the SMD parts; the supercap is hand-soldered |
 | 5 | **Bench-verify before trusting the TEGs** | Drive the input from a bench supply that emulates the TEG (start ~1 V, low current limit) and confirm the rail comes up and the fan starts |
 | 6 | **Then the thermal tests** | One-module baseline, two-module comparison, five cold starts, 0.5 W load — per [PLAN.md](PLAN.md) |
 
-### Parts still to source
+### The one open decision: storage
 
-| Part | Value | Where to get it |
-|------|-------|-----------------|
-| `SC1` | Supercapacitor 0.22–0.47 F, 5.5 V | **Not stocked by JLCPCB** — buy separately (LCSC/Digi-Key/Amazon; e.g. Panasonic `EEC-S0H`, Eaton HV series) and hand-solder. **Pick a low-leakage part** |
-| `L1`, `L2` | 22 µH power inductor | JLCPCB extended, or hand-solder. Must fit the 1008 (2.5 × 2.0 mm) land, or update the footprint |
-| `R1`–`R4`, `R6`, `R7`, `R15` | 5.90 / 4.02 / 5.60 / 4.42 / 1.43 / 4.22 MΩ, 1 % | Standard E96 values — easy to buy, but JLCPCB's public search API could not resolve them, so pick manually. `R13`/`R14` (10 MΩ) are already found: `C114606` |
-| `R8`, `R9` | MT3608 feedback divider | Value not yet computed (sets the exact 5 V output) |
-| `R10` | 1 k gate resistor | Provisional value |
+**JLCPCB stocks no supercapacitors** (verified against their own API — `supercapacitor`,
+`EDLC`, `5.5V 1F` all return 0 results; no batteries either). So that single part cannot be
+machine-assembled. Four options, detailed with stored energy and effort in
+[BOM.md](BOM.md#️-open-decision--the-storage-element):
+
+- **A — hand-solder one supercap** (2 joints): keeps the design, ≈2–4 s of fan. *Recommended.*
+- **B — plug-in supercap** via a 2-pin header: no soldering, slightly bulkier.
+- **C — coin-cell holder** (JLCPCB-assembled) + user-inserted LiFePO₄ cell: hours of runtime,
+  needs the threshold network recomputed.
+- **D — electrolytic buffer only**: 100 % JLCPCB, but **cannot run the fan** from storage.
+
+Everything else is sourced:
+
+| Ref | Part | LCSC | Stock |
+|-----|------|------|-------|
+| `L1`, `L2` | 22 µH `SWPA4020S220MT` | C82401 | 6 007 |
+| `R1`/`R2`/`R3`/`R4`+`R15`/`R7`/`R6` | 5.90 / 4.02 / 5.60 / 4.42 / 4.22 / 1.43 MΩ | C2076902 / C137708 / C23190 / C166806 / C166807 / C166898 | 775 – 58 k |
+| `R8` / `R9` | 73.2 kΩ / 10 kΩ (MT3608 → **5.0 V**) | C2933257 / C25804 | ok |
+| `R10` / `R13`,`R14` | 1 kΩ / 10 MΩ | C21190 / C114606 | ok |
+
+⚠️ `U1` `BQ25504RGTT` (C157471) is **low stock (7)** — `C2876746` (BQ25504RGTR, 21) is the
+same part if it runs out.
 
 ## What to expect (read this before testing)
 
@@ -68,6 +82,7 @@ already scopes the test load as "0.5 W *where sufficient power exists*".
 | `scripts/gen_schematic.py` | Regenerates `TEG.kicad_sch` from the part/net table inside it |
 | `scripts/gen_board.py` | Regenerates `TEG.kicad_pcb` (shares the netlist with `gen_schematic.py`) |
 | `scripts/validate.sh` | Runs KiCad ERC (schematic) and DRC (board); needs `kicad-cli` |
+| `scripts/jlc_lookup.py` | Queries **JLCPCB's own parts API** — id, library type, stock |
 
 ## Opening the project
 
@@ -109,8 +124,10 @@ Notes learned the hard way (see [PLAN.md](PLAN.md) §3):
 - The fetch endpoint is **intermittent** (`Component … not found on EasyEDA/LCSC`
   for everything, then recovers) — it is rate-limiting/outage, not missing parts.
   Retry.
-- The public search API also **degrades** (returning generic results for any query);
-  when that happens, verify a part by LCSC ID with `--json` instead of searching.
+- The public search API also **degrades** (returning generic results for any query) — as of
+  2026-10-10 it returns the same high-stock list for *every* query, so it cannot source parts.
+  Use `scripts/jlc_lookup.py` (JLCPCB's own API) to find parts, and `jlc-client --json <id>`
+  to fetch a part's symbol/footprint once you have its id.
 
 ## Design in one paragraph
 
