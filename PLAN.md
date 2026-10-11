@@ -94,7 +94,8 @@ Concrete choices for the ~3–4 W board. Every part number verified in the JLCPC
 | USB-A receptacle | SMD | **AF 10.0 QT-ZB6.8 — C456016** (ext, 21 k) |
 | USB-C role | **Source (DFP)**: Rp on CC1/CC2 to VBUS. **56 kΩ advertises 500 mA/port** — honest for a 3–4 W shared output (22 kΩ = 1.5 A, 10 kΩ = 3 A if one fast port is wanted later) | **56 kΩ — C23206** (base) |
 | USB-A role | **DCP** (dedicated charging port): tie **D+ to D−**, no IC needed | — |
-| USB-C PD | **Not included yet** — only if reliable battery-bank charging is required (open question 2) | — |
+| USB-C PD | **In scope** (the role is *both* bank charging and powering loads). JLCPCB survey: `CH224A/D` and `HUSB601`/`HUSB237` are **sink** controllers (wrong direction); `SW3518S` (C406811) is a source IC but is **out of stock (0)**. Best candidate: **IP6518 — C181688** (QFN-24-EP, 9 117 stock) — **needs a datasheet check to confirm it is a source/DFP controller** | candidate: IP6518 (C181688) |
+| USB-C fallback | If no source PD controller verifies, ship a **5 V source with Rp advertising (22 kΩ → 1.5 A)**: most banks and loads charge from that; PD only matters for banks that refuse non-PD sources | 22 kΩ — C31850 (base) |
 | Fan driver | Low-side N-MOSFET + gate resistor, reusing the existing part | **AO3400A — C20917** (base) |
 
 **Still blocked on inputs:** the module datasheet (module count → array voltage → the buck's input
