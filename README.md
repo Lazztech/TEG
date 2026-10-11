@@ -1,158 +1,150 @@
 # TEG — Thermal Energy Harvesting Prototype
 
 Electronics for a thermal energy harvesting prototype: a small TEG array feeds a
-sub-1 V energy-harvesting front-end (BQ25504), which charges a storage element and
-backs up a regulated 5 V rail for a Noctua 5 V PWM fan and a test load.
+sub-1 V energy-harvesting front-end (BQ25504), which charges a buffer capacitor and backs
+up a regulated 5 V rail for a Noctua 5 V PWM fan and a test load.
 
-Originally drafted on **Flux.ai**; this repo is the **KiCad** continuation, prepared
-for **JLCPCB** fabrication (SMT + THT).
+Originally drafted on **Flux.ai**; this repo is the **KiCad** continuation, prepared for
+**JLCPCB — made and assembled**.
 
-> **Status: design complete, KiCad-validated, and every part sourced from the JLCPCB
-> catalogue.** 32 parts placed in both schematic and board with nets assigned; board DRC
-> passes with **0 violations**. Two things remain before ordering: **one decision** (the
-> storage element — see below) and **routing the copper**.
+> **Status: design complete, KiCad-validated, every part a JLCPCB catalogue part.
+> Not yet routed.** 33 parts placed in schematic and board with nets assigned. ERC has
+> only cosmetic warnings; board DRC reports **no clearance or short errors** — just the
+> unrouted connections. Remaining: **route the copper**, then export and order.
 
 ## Decisions made (and why)
 
-These are settled — no further choices needed for a first prototype.
+Settled — nothing here needs your input.
 
 | Question | Decision | Why |
 |----------|----------|-----|
-| **Storage: battery or supercap?** | **Supercapacitor** (0.22–0.47 F, 5.5 V) | Much safer in a *thermal* device: no fire/thermal-runaway risk, tolerant of heat and cold (Li-ion must not be charged below 0 °C). Simpler — no protection circuitry. Also matches the load: the fan is a short burst, not a continuous draw. Trade-off accepted: supercap leakage must be measured, as it can exceed what the TEGs harvest |
-| **MPPT?** | **Yes — built into the BQ25504** | The chip does sample-and-hold MPPT in hardware; no extra IC, no firmware |
-| **MPPT ratio** | **≈50 % of Voc** (`R13` = `R14` = 10 MΩ) | A TEG makes maximum power at a matched load, ≈50 % of its open-circuit voltage. The datasheet's 78 % default is tuned for *solar* panels — copying it would have thrown away real power |
-| **Storage voltage window** | **VBAT_OV 3.15 V** (datasheet-verified) | Conservative and tested. Less runtime than a ~5.0 V window, but it protects the cap and is known-good. Tune later once real behaviour is measured |
-| **Charge cutoff** | `OT_PROG` → GND = **65 °C** cutoff | Sensible protection for a device that is warm by design |
+| **Storage: battery or supercap?** | **Neither** — a **1000 µF electrolytic buffer** (option D) | JLCPCB stocks **no** supercapacitors and no batteries (verified against their API), so those can't be machine-assembled. An electrolytic keeps the board **100 % JLCPCB-assembled**. Trade-off accepted: ≈5 mJ stored, so the **fan runs only on live harvest**, not from storage |
+| **MPPT?** | **Yes — built into the BQ25504** | Sample-and-hold MPPT in hardware; no extra IC, no firmware |
+| **MPPT ratio** | **≈50 % of Voc** (`R13` = `R14` = 10 MΩ) | A TEG makes maximum power at a matched load, ≈50 % of its open-circuit voltage. The datasheet's 78 % default is tuned for *solar* |
+| **Voltage window** | **VBAT_OV 3.15 V** (datasheet-verified) | Conservative and tested. Protects the part; tune later if you want more usable energy |
+| **Charge cutoff** | `OT_PROG` → GND = **65 °C** | Sensible protection for a device that is warm by design |
+| **`VBAT_OK`** | Left unconnected (no-connect marker) | With no real energy store, gating the load buys little. Wiring it to the MT3608 `EN` is the natural upgrade if you later add a supercap |
 
 ## Remaining tasks — from here to a working prototype
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | **Decide the storage element** | The one open design question — options A–D above |
-| 2 | **Route the copper** | The main remaining work. Board is placed and netted but unrouted (ratsnest only). Ground pour first, then power, then signals |
-| 3 | **Export fab files** | Gerbers + drill, plus JLCPCB `BOM.csv` / `CPL.csv` (no script yet) |
-| 4 | **Order the PCB** | JLCPCB SMT assembly can place the SMD parts; the supercap is hand-soldered |
-| 5 | **Bench-verify before trusting the TEGs** | Drive the input from a bench supply that emulates the TEG (start ~1 V, low current limit) and confirm the rail comes up and the fan starts |
-| 6 | **Then the thermal tests** | One-module baseline, two-module comparison, five cold starts, 0.5 W load — per [PLAN.md](PLAN.md) |
+| 1 | **Route the copper** | The one remaining design step. Suggested order: **GND pour** on B.Cu → power (`+5V`, `VSTOR`, `VBAT`, `TEG+`) → signals. Keep the MPPT divider (`R13`/`R14`) and sampling cap (`C3`) **short and away from switching nodes** — that node is high-impedance and noise-sensitive. Route interactively in KiCad's PCB editor (KiCad has no autorouter) |
+| 2 | **Export fab files** | Gerbers + drill via `File ▸ Fabrication Outputs` in KiCad. For JLCPCB's `BOM.csv` / `CPL.csv` use KiCad's **Fabrication Toolkit** (or JLCPCB's plugin) — the pick-and-place rotation/axis conventions are easy to get subtly wrong, and a wrong rotation misplaces parts |
+| 3 | **Order the PCB** | JLCPCB assembles **all** parts now. ⚠️ `U1` `BQ25504RGTT` stock is only **7** — `C2876746` is the same part if it sells out |
+| 4 | **Bench-verify before trusting the TEGs** | Drive the input from a bench supply emulating the TEG (start ~1 V, low current limit); confirm the rail comes up and the fan starts |
+| 5 | **Then the thermal tests** | One-module baseline, two-module comparison, five cold starts, 0.5 W load — per [PLAN.md](PLAN.md) |
 
-### The one open decision: storage
+## Storage — what option D means
 
-**JLCPCB stocks no supercapacitors** (verified against their own API — `supercapacitor`,
-`EDLC`, `5.5V 1F` all return 0 results; no batteries either). So that single part cannot be
-machine-assembled. Four options, detailed with stored energy and effort in
-[BOM.md](BOM.md#️-open-decision--the-storage-element):
+The BQ25504 needs some reservoir on `VBAT` (the datasheet's own reference shows ">100 µF"),
+and a **1000 µF 6.3 V SMD electrolytic (`C970711`)** satisfies that: it holds the rail steady
+and is placed by JLCPCB.
 
-- **A — hand-solder one supercap** (2 joints): keeps the design, ≈2–4 s of fan. *Recommended.*
-- **B — plug-in supercap** via a 2-pin header: no soldering, slightly bulkier.
-- **C — coin-cell holder** (JLCPCB-assembled) + user-inserted LiFePO₄ cell: hours of runtime,
-  needs the threshold network recomputed.
-- **D — electrolytic buffer only**: 100 % JLCPCB, but **cannot run the fan** from storage.
+But it stores **≈5 mJ**, against ≈1.2 J for a supercapacitor. So:
 
-Everything else is sourced:
+- **The fan cannot run from storage** — it turns only while the TEG array supplies enough power
+  directly (high ΔT). That is arguably the most *informative* first-prototype behaviour, but
+  "fan runs for a few seconds off stored energy" is **not** a capability of this build.
+- ⚠️ The electrolytic is **polarised**: pin 1 = +. **Verify against the footprint silkscreen.**
+
+If you later want real storage, it's a one-part change: add a 0.22–0.47 F / 5.5 V supercap in
+place of `C2` (hand-solder or via a 2-pin header), and optionally gate the MT3608 `EN` from
+`VBAT_OK`. The threshold network already suits a 5.5 V cell.
+
+## Parts — all verified in the JLCPCB catalogue
+
+Sourced with [scripts/jlc_lookup.py](scripts/jlc_lookup.py) (JLCPCB's own parts API: id,
+library type, stock). Highlights:
 
 | Ref | Part | LCSC | Stock |
 |-----|------|------|-------|
-| `L1`, `L2` | 22 µH `SWPA4020S220MT` | C82401 | 6 007 |
+| `U1` | BQ25504RGTT (harvester + MPPT) | C157471 | ⚠️ 7 (alt `C2876746` = 21) |
+| `U2` | MT3608 (5 V boost) | C84817 | 129 k |
+| `Q1` / `D1`,`D2` | AO3400A / 1N5819WS | C20917 / C191023 | base parts |
+| `L1`,`L2` | 22 µH `SWPA4020S220MT` | C82401 | 6 007 |
+| `C2` | 1000 µF 6.3 V electrolytic | C970711 | 1 888 |
 | `R1`/`R2`/`R3`/`R4`+`R15`/`R7`/`R6` | 5.90 / 4.02 / 5.60 / 4.42 / 4.22 / 1.43 MΩ | C2076902 / C137708 / C23190 / C166806 / C166807 / C166898 | 775 – 58 k |
 | `R8` / `R9` | 73.2 kΩ / 10 kΩ (MT3608 → **5.0 V**) | C2933257 / C25804 | ok |
 | `R10` / `R13`,`R14` | 1 kΩ / 10 MΩ | C21190 / C114606 | ok |
+| `J1`,`J3` / `J2` | KF128 screw terminal / 4-pin fan header | C474952 / C2691448 | ok |
 
-⚠️ `U1` `BQ25504RGTT` (C157471) is **low stock (7)** — `C2876746` (BQ25504RGTR, 21) is the
-same part if it runs out.
-
-## What to expect (read this before testing)
+## What to expect when you test
 
 **Two TG12-4 modules produce only a few hundred mW at useful ΔT, while the fan draws
-~0.5 W.** So the fan will run in **bursts**, or only when ΔT is high — it will not run
-continuously from the TEGs alone. That is the expected behaviour, not a fault; the plan
-already scopes the test load as "0.5 W *where sufficient power exists*".
+~0.5 W.** With option D there is no energy store, so the fan will turn **only while ΔT is
+high enough** — it will not run continuously, and it will not run from stored energy. That is
+the expected behaviour of this build, not a fault.
 
 ## Repo layout
 
 | Path | What it is |
 |------|------------|
-| [BOM.md](BOM.md) | Bill of materials: 32 parts, LCSC numbers, MPPT explanation, sourcing notes |
-| [PLAN.md](PLAN.md) | Living plan: findings, decisions, open questions, next steps, changelog |
+| [BOM.md](BOM.md) | Bill of materials, MPPT explanation, storage decision |
+| [PLAN.md](PLAN.md) | Living plan: findings, decisions, open questions, changelog |
 | `hardware/TEG.kicad_pro` | KiCad project |
 | `hardware/TEG.kicad_sch` | Root schematic (auto-generated — nets defined by pin labels) |
-| `hardware/TEG.kicad_pcb` | Board (auto-generated — 32 footprints placed and netted, **no copper routed yet**) |
-| `hardware/libs/TEG.kicad_sym` | Project symbol library (`TEG:`) — 14 symbols |
-| `hardware/footprints/TEG.pretty/` | Project footprint library (`TEG:`) — 10 footprints |
+| `hardware/TEG.kicad_pcb` | Board (auto-generated — 33 footprints placed and netted, **no copper routed yet**) |
+| `hardware/libs/TEG.kicad_sym` | Project symbol library (`TEG:`) |
+| `hardware/footprints/TEG.pretty/` | Project footprint library (`TEG:`) |
 | `hardware/easyeda2kicad.3dshapes/` | 3D WRL models, named as the footprints reference them |
 | `scripts/gen_schematic.py` | Regenerates `TEG.kicad_sch` from the part/net table inside it |
 | `scripts/gen_board.py` | Regenerates `TEG.kicad_pcb` (shares the netlist with `gen_schematic.py`) |
 | `scripts/validate.sh` | Runs KiCad ERC (schematic) and DRC (board); needs `kicad-cli` |
-| `scripts/jlc_lookup.py` | Queries **JLCPCB's own parts API** — id, library type, stock |
+| `scripts/jlc_lookup.py` | Queries JLCPCB's own parts API — id, library type, stock |
 
 ## Opening the project
 
-Open `hardware/TEG.kicad_pro` in **KiCad 7 or 8** (validated with KiCad 10). The local
-library tables (`sym-lib-table`, `fp-lib-table`) are already set up, so all parts are
-available under the `TEG:` nickname.
+Open `hardware/TEG.kicad_pro` in **KiCad 7 or 8** (developed with KiCad 10). The library
+tables are already set up, so all parts appear under the `TEG:` nickname.
 
 The schematic and board are **generated** — edit the part/net table in
-`scripts/gen_schematic.py` (and placements in `scripts/gen_board.py`) and re-run them
-rather than hand-editing the `.kicad_sch` / `.kicad_pcb`:
+`scripts/gen_schematic.py` (and placements in `scripts/gen_board.py`) and re-run:
 
 ```bash
 python3 scripts/gen_schematic.py   # -> hardware/TEG.kicad_sch
 python3 scripts/gen_board.py       # -> hardware/TEG.kicad_pcb
 ./scripts/validate.sh              # ERC + DRC (needs kicad-cli)
+python3 scripts/jlc_lookup.py "22uH inductor"   # search the JLCPCB catalogue
 ```
 
-## Tooling — JLCPCB parts (`jlc-client`)
+**Known cosmetic warnings** (safe to ignore): ERC reports 3 × `lib_symbol_mismatch` on the two
+most recently fetched symbols (their embedded text is byte-identical to the library — an
+unresolved KiCad quirk), and DRC reports 1 × `silk_overlap` where the 8 mm electrolytic's
+reference text crosses its own silkscreen. Neither affects fabrication.
 
-`jlc-client` is installed globally and talks to a hosted JLCPCB/EasyEDA service.
-Component fetches need a token; it starts with `-`, so it must be **quoted**:
+## Tooling — JLCPCB parts
+
+Two tools, for different jobs:
+
+- **`scripts/jlc_lookup.py`** — *finding* parts. Queries JLCPCB's own API and returns id,
+  library type (`base` = no setup fee / `expand` = extended) and stock.
+- **`jlc-client`** — *fetching* a part's KiCad symbol/footprint/3D model by LCSC id, and
+  appending symbols to the project library:
 
 ```bash
-# Search the catalog (public, no token)
-jlc-client search --query "MT3608" --limit 8
-
-# Fetch symbol + footprint + 3D model and append the symbol to the project library
+# Fetch symbol + footprint + 3D and append the symbol to the project library
 JLC_API_TOKEN='<token>' jlc-client --symbol -l ./hardware/libs/TEG.kicad_sym \
-    --footprint -o ./hardware/footprints C157471 C84817
-
-# Authoritative part data (name/package/symbol/footprint/3D UUID) as JSON
-JLC_API_TOKEN='<token>' jlc-client --json C157471
+    --footprint --footprint-lib TEG -o ./hardware/footprints C157471 C84817
 ```
 
-Notes learned the hard way (see [PLAN.md](PLAN.md) §3):
+Caveats learned the hard way (see [PLAN.md](PLAN.md) §3):
 
-- `jlc-client search --type ic` filters to one subcategory and hides power ICs —
-  search with a plain `--query` instead.
-- The fetch endpoint is **intermittent** (`Component … not found on EasyEDA/LCSC`
-  for everything, then recovers) — it is rate-limiting/outage, not missing parts.
-  Retry.
-- The public search API also **degrades** (returning generic results for any query) — as of
-  2026-10-10 it returns the same high-stock list for *every* query, so it cannot source parts.
-  Use `scripts/jlc_lookup.py` (JLCPCB's own API) to find parts, and `jlc-client --json <id>`
-  to fetch a part's symbol/footprint once you have its id.
+- `jlc-client`'s **search** is unreliable — as of 2026-10-10 it returns the same high-stock
+  list for *every* query. Use `jlc_lookup.py` to search and `jlc-client` to fetch by id.
+- `jlc-client search --type ic` also filters to one subcategory and hides power ICs.
+- The component **fetch** endpoint is intermittent (`Component … not found on EasyEDA/LCSC`
+  for everything, then recovers). Retry.
 
 ## Design in one paragraph
 
-Two Marlow TG12-4-01LS TEG modules in series feed the BQ25504 boost charger through a
-screw terminal. The BQ25504 does **MPPT in hardware** (no extra IC): R13/R14 sample a
-fraction of the harvester's open-circuit voltage onto a hold cap, and the chip regulates
-its input to that fraction. That ratio is set to **≈50 % of Voc** (R13 = R14 = 10 MΩ) —
-matched-load MPP for a TEG, *not* the datasheet's 78 % solar figure. The charger fills a
-**supercapacitor** on `VBAT` (safer than a battery in a heated device) and exposes `VSTOR`;
-an MT3608 boost then regulates a 5 V rail for the Noctua NF-A8 4-pin PWM fan (Tach pull-up,
-PWM from a test header) and a switchable 0.5 W test load (AO3400A low-side MOSFET).
-Two-stage on purpose: it keeps the harvester's MPPT decoupled from load transients and
-lets a cold-start charge the storage before the 5 V boost is asked to run.
-
-Open questions and thermal/mechanical context: [PLAN.md](PLAN.md).
-
-Two Marlow TG12-4-01LS TEG modules in series feed the BQ25504 boost charger through a
-screw terminal. The BQ25504 does **MPPT in hardware** (no extra IC): R13/R14 sample a
-fraction of the harvester's open-circuit voltage onto a hold cap, and the chip regulates
-its input to that fraction. That ratio is set to **≈50 % of Voc** (R13 = R14 = 10 MΩ) —
-matched-load MPP for a TEG, *not* the datasheet's 78 % solar figure. The charger fills a
-**supercapacitor** on `VBAT` (safer than a battery in a heated device) and exposes `VSTOR`;
-an MT3608 boost then regulates a 5 V rail for the Noctua NF-A8 4-pin PWM fan (Tach pull-up,
-PWM from a test header) and a switchable 0.5 W test load (AO3400A low-side MOSFET).
-Two-stage on purpose: it keeps the harvester's MPPT decoupled from load transients and
-lets a cold-start charge the storage before the 5 V boost is asked to run.
+Two Marlow TG12-4-01LS TEG modules in series feed the BQ25504 boost charger through a screw
+terminal. The BQ25504 does **MPPT in hardware**: `R13`/`R14` sample a fraction of the
+harvester's open-circuit voltage onto a hold cap, and the chip regulates its input to that
+fraction — set to **≈50 % of Voc**, matched-load MPP for a TEG. The charger holds a 1000 µF
+electrolytic buffer on `VBAT` and exposes `VSTOR`; an MT3608 boost then regulates a 5 V rail
+for the Noctua NF-A8 4-pin PWM fan (Tach pull-up, PWM from a test header) and a switchable
+0.5 W test load (AO3400A low-side MOSFET). Two-stage on purpose: it keeps the harvester's MPPT
+decoupled from load transients and lets the buffer stabilise before the 5 V boost is asked to run.
 
 Open questions and thermal/mechanical context: [PLAN.md](PLAN.md).
