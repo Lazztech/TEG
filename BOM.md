@@ -117,4 +117,6 @@ Conservative and datasheet-verified. Usable energy 3.15→2.2 V is limited (≈2
 - [x] MT3608 feedback divider computed → 73.2 k / 10 k = 5.0 V
 - [x] Storage decided (option D) and added to the netlist/board
 - [ ] **Route copper + GND pour** ← the remaining work
-- [ ] Export Gerbers/drill + JLCPCB `BOM.csv` / `CPL.csv`
+- [x] Export Gerbers/drill + JLCPCB `BOM.csv` / `CPL.csv` — scripted as
+  [scripts/fab_export.sh](scripts/fab_export.sh); see
+  [docs/jlcpcb-fabrication.md](docs/jlcpcb-fabrication.md)

@@ -69,14 +69,17 @@ The classes still exist so wider widths can be set later, after a manual fanout 
 
 ## Fabrication outputs
 
-Generated into `build/fab/` (gitignored — regenerate with the commands in
-[Opening the project](#opening-the-project)):
+Generated into `build/fab/` (gitignored) by **[scripts/fab_export.sh](scripts/fab_export.sh)**
+— one command for the whole JLCPCB package (Gerbers + drill + BOM + CPL). Full flow and
+the ordering/approval path: **[docs/jlcpcb-fabrication.md](docs/jlcpcb-fabrication.md)**.
 
 | File | What |
 |------|------|
+| `TEG-gerbers.zip` | JLCPCB PCB upload — Gerbers + drill + `.gbrjob` |
 | `TEG-*.gbl/.gtl/.gbs/.gts/.gbo/.gto/.gm1` + `TEG-job.gbrjob` | Gerbers (2 copper, 2 mask, 2 silk, edge) |
 | `TEG.drl` | Excellon drill |
-| `TEG-pos.csv` | Pick-and-place (`kicad-cli pcb export pos`) |
+| `TEG-pos.csv` | Raw pick-and-place (`kicad-cli pcb export pos`) |
+| `TEG-CPL-jlcpcb.csv` | JLCPCB **CPL** — `Designator,Val,Package,Mid X,Mid Y,Rotation,Layer` |
 | `TEG-BOM-jlcpcb.csv` | JLCPCB BOM — `Comment,Designator,Footprint,LCSC Part #` |
 | `TEG-routed.pdf`, `TEG-schematic.pdf` | 2D renders for review (copper visible here) |
 | `build/render/TEG-*.png` | **3D renders** (top / isometric / bottom / harvester close-up) — see [scripts/render.sh](scripts/render.sh) |
@@ -168,6 +171,7 @@ the expected behaviour of this build, not a fault.
 | [REQUIREMENTS.md](REQUIREMENTS.md) | **Whole-device requirements** — electrical, mechanical, thermal/safety, manufacturing, and the system BOM split into *from JLCPCB* vs *buy separately* |
 | [BOM.md](BOM.md) | Board bill of materials (the sub-watt reference design) |
 | [PLAN.md](PLAN.md) | Living plan: findings, decisions, open questions, changelog |
+| [docs/jlcpcb-fabrication.md](docs/jlcpcb-fabrication.md) | **End-to-end JLCPCB flow** — fab package command, verification checklist, manual approval-gated ordering |
 | `hardware/TEG.kicad_pro` | KiCad project |
 | `hardware/TEG.kicad_sch` | Root schematic (auto-generated — nets defined by pin labels) |
 | `hardware/TEG.kicad_pcb` | Board (auto-generated — 33 footprints placed and netted, **no copper routed yet**) |
@@ -178,6 +182,9 @@ the expected behaviour of this build, not a fault.
 | `scripts/gen_board.py` | Regenerates `TEG.kicad_pcb` (shares the netlist with `gen_schematic.py`) |
 | `scripts/validate.sh` | Runs KiCad ERC (schematic) and DRC (board); needs `kicad-cli` |
 | `scripts/jlc_lookup.py` | Queries JLCPCB's own parts API — id, library type, stock |
+| `scripts/fab_export.sh` | **One command** → JLCPCB package (Gerbers + drill + BOM + CPL) in `build/fab/` |
+| `scripts/jlc_bom.py` | Schematic → JLCPCB BOM CSV (`Comment,Designator,Footprint,LCSC Part #`) |
+| `scripts/jlc_cpl.py` | KiCad `pos` CSV → JLCPCB CPL CSV |
 | `scripts/freeroute.sh` | Routes the board via the SPECCTRA DSN→FreeRouting→SES round-trip, then DRCs |
 | `scripts/render.sh` | Renders 3D views of the board (with component bodies) into `build/render/` |
 | `scripts/route_board.py` | *Abandoned* hand-written router (kept for reference; not used) |
@@ -197,11 +204,8 @@ python3 scripts/gen_board.py       # -> hardware/TEG.kicad_pcb (unrouted, wipes 
 ./scripts/validate.sh              # ERC + DRC (needs kicad-cli)
 python3 scripts/jlc_lookup.py "22uH inductor"   # search the JLCPCB catalogue
 
-# fabrication outputs
-KC=~/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli
-$KC pcb export gerbers -o build/fab/ hardware/TEG.kicad_pcb
-$KC pcb export drill --excellon-units mm -o build/fab/ hardware/TEG.kicad_pcb
-$KC pcb export pos --format csv --units mm -o build/fab/TEG-pos.csv hardware/TEG.kicad_pcb
+# one-command JLCPCB package: gerbers + drill + BOM + CPL into build/fab/
+scripts/fab_export.sh              # see docs/jlcpcb-fabrication.md (ordering is manual + approval-gated)
 ```
 
 **Known cosmetic warnings** (safe to ignore): ERC reports 3 × `lib_symbol_mismatch` on the two
