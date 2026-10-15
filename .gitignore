@@ -14,5 +14,8 @@ _autosave-*
 __pycache__/
 *.pyc
 
+# CAD toolchain virtualenv (scripts/cad-setup.sh recreates it)
+.venv/
+
 # Generated validation artifacts (regenerate with scripts/validate.sh)
 build/
