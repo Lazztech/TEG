@@ -1,0 +1,8 @@
+# CadQuery toolchain for the LAZ-24 bake-off (contender #2).
+# Install into .venv-cadquery/ with scripts/cad-setup-cadquery.sh:
+#     scripts/cad-setup-cadquery.sh
+# Pinned so a build is reproducible; bump deliberately.
+#
+# CadQuery needs Python <= 3.12: cadquery-ocp has no cp313 wheels yet, so the
+# bake-off uses a separate 3.12 venv (the build123d toolchain runs on 3.13).
+cadquery==2.5.2

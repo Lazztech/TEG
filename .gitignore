@@ -14,8 +14,12 @@ _autosave-*
 __pycache__/
 *.pyc
 
-# CAD toolchain virtualenv (scripts/cad-setup.sh recreates it)
+# CAD toolchain virtualenvs (scripts/cad-setup*.sh recreate them)
 .venv/
+.venv-cadquery/
+
+# SolidCraft binary the bake-off script downloads (scripts/cad-solidcraft.sh)
+.solidcraft/
 
 # Generated validation artifacts (regenerate with scripts/validate.sh)
 build/

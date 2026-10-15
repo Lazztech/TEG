@@ -131,7 +131,27 @@ not modelled here.
 - ⬜ Split the enclosure into front/back shells and add the metal interface plate
   and clamp plate as their own parts.
 
-## 9. Prior art in this repo
+## 9. Bake-off: the same wedge in three tools
+
+On the user's request, the enclosure is also authored with two more
+agent-drivable tools so the result can be judged by review and print quality —
+same parameters, three tools. See **[cad/bakeoff/README.md](../cad/bakeoff/README.md)**.
+
+| Tool | Kernel | Source | Exports |
+|------|--------|--------|---------|
+| build123d | OCCT | `cad/wedge.py` | `cad/exports/` |
+| CadQuery | OCCT | `cad/bakeoff/cadquery/wedge_cq.py` | `cad/bakeoff/cadquery/exports/` |
+| SolidCraft | truck | `cad/bakeoff/solidcraft/wedge.json` | `cad/bakeoff/solidcraft/exports/` |
+
+```bash
+scripts/cad-run-cadquery.sh   # bootstrap: scripts/cad-setup-cadquery.sh
+scripts/cad-solidcraft.sh     # downloads a pinned SolidCraft CLI into .solidcraft/
+```
+
+All three fit the bed and agree on the solid to <0.01% volume. build123d keeps the
+canonical `cad/exports/` that the print task consumes.
+
+## 10. Prior art in this repo
 
 The KiCad pipeline already proves the pattern this toolchain follows: **source is
 a script, output is generated**. `scripts/gen_board.py` regenerates `TEG.kicad_pcb`
