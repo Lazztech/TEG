@@ -131,24 +131,26 @@ not modelled here.
 - ⬜ Split the enclosure into front/back shells and add the metal interface plate
   and clamp plate as their own parts.
 
-## 9. Bake-off: the same wedge in three tools
+## 9. Bake-off: the same wedge in four tools
 
-On the user's request, the enclosure is also authored with two more
+On the user's request, the enclosure is also authored with three more
 agent-drivable tools so the result can be judged by review and print quality —
-same parameters, three tools. See **[cad/bakeoff/README.md](../cad/bakeoff/README.md)**.
+same parameters, four tools. See **[cad/bakeoff/README.md](../cad/bakeoff/README.md)**.
 
 | Tool | Kernel | Source | Exports |
 |------|--------|--------|---------|
 | build123d | OCCT | `cad/wedge.py` | `cad/exports/` |
 | CadQuery | OCCT | `cad/bakeoff/cadquery/wedge_cq.py` | `cad/bakeoff/cadquery/exports/` |
 | SolidCraft | truck | `cad/bakeoff/solidcraft/wedge.json` | `cad/bakeoff/solidcraft/exports/` |
+| FreeCAD | OCCT | `cad/bakeoff/freecad/wedge_fc.py` | `cad/bakeoff/freecad/exports/` |
 
 ```bash
 scripts/cad-run-cadquery.sh   # bootstrap: scripts/cad-setup-cadquery.sh
 scripts/cad-solidcraft.sh     # downloads a pinned SolidCraft CLI into .solidcraft/
+scripts/cad-run-freecad.sh    # downloads a pinned FreeCAD AppImage into .freecad/
 ```
 
-All three fit the bed and agree on the solid to <0.01% volume. build123d keeps the
+All four fit the bed and agree on the solid to <0.01% volume. build123d keeps the
 canonical `cad/exports/` that the print task consumes.
 
 ## 10. Prior art in this repo

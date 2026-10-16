@@ -7,8 +7,8 @@ program, so a change is a reviewable diff and an agent can drive it end to end.
 - `parameters.py` — every dimension (the single source of truth).
 - `wedge.py` — the wedge model; exports `exports/wedge_enclosure.{step,stl,png}`.
 - `exports/` — committed build output. The **STL feeds the Bambu print task**.
-- `bakeoff/` — the same enclosure authored in two more tools (CadQuery,
-  SolidCraft) for a print-quality comparison. See `bakeoff/README.md`.
+- `bakeoff/` — the same enclosure authored in three more tools (CadQuery,
+  SolidCraft, FreeCAD) for a print-quality comparison. See `bakeoff/README.md`.
 
 ```bash
 scripts/cad-setup.sh   # once: create .venv/ and install deps (no sudo)
