@@ -4,14 +4,8 @@
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-# The bake-off contenders are an archived comparison (see cad/bakeoff/README.md)
-# and are not part of the maintained toolchain.
 extend-exclude = [
-    "cad/bakeoff",
     ".venv",
-    ".venv-cadquery",
-    ".freecad",
-    ".solidcraft",
 ]
 
 [tool.ruff.lint]

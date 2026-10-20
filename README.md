@@ -163,7 +163,7 @@ Every pull request runs these checks (see **[docs/validation.md](docs/validation
 
 | Check | What it proves |
 |-------|----------------|
-| **CAD artifacts** | Rebuilds the build123d wedge and requires the committed STEP/STL to match. Every STL is a closed, single-body, bed-fitting mesh, and the four bake-off exports still agree. |
+| **CAD artifacts** | Rebuilds the build123d wedge and requires the committed STEP/STL to match. Every STL is a closed, single-body, bed-fitting mesh. |
 | **ERC / DRC** | `kicad-cli` (KiCad 10) finds no error-level schematic or board violations. |
 | **Fab package** | Gerbers, drill, CPL, BOM and the JLCPCB zip build; nothing is ordered. |
 | **Scripts** | All shell scripts parse and all Python sources compile. |

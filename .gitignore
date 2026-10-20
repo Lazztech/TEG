@@ -16,13 +16,6 @@ __pycache__/
 
 # CAD toolchain virtualenvs (scripts/cad-setup*.sh recreate them)
 .venv/
-.venv-cadquery/
-
-# SolidCraft binary the bake-off script downloads (scripts/cad-solidcraft.sh)
-.solidcraft/
-
-# FreeCAD AppImage the bake-off script downloads (scripts/cad-run-freecad.sh)
-.freecad/
 
 # Generated validation artifacts (regenerate with scripts/validate.sh)
 build/

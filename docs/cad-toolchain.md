@@ -15,7 +15,7 @@ issue **LAZ-24**, and the Bambu print task that consumes the STL.
 
 | Option | Verdict |
 |--------|---------|
-| **build123d / CadQuery** (Python, OpenCASCADE) | **Chosen.** Scriptable, headless, git-diffable source — matches this repo's script-heavy KiCad generators (`scripts/gen_schematic.py`, `scripts/gen_board.py`). |
+| **build123d** (Python, OpenCASCADE) | **Chosen.** Scriptable, headless, git-diffable source — matches this repo's script-heavy KiCad generators (`scripts/gen_schematic.py`, `scripts/gen_board.py`). |
 | FreeCAD | Scriptable, but a heavyweight GUI app to install and drive; no advantage over a bare library here. |
 | Onshape | Cloud SaaS; needs a human-owned account and network auth — awkward for unattended agents. |
 | Fusion 360 | Cloud, script/API limited, licence-gated. |
@@ -93,8 +93,7 @@ Committed exports are checked, not assumed. `scripts/validate.sh --cad` runs
 `scripts/validate_cad.py`, which verifies that every committed STL is a closed,
 consistently wound, single-body mesh; sits on Z=0 and fits the A1 mini bed;
 matches the STEP volume and envelope; and still matches a fresh rebuild of
-`cad/wedge.py`. The three bake-off exports must also agree with the canonical
-solid. A stale artifact fails with the exact regeneration command.
+`cad/wedge.py`. A stale artifact fails with the exact regeneration command.
 
 GitHub Actions runs this on every pull request
 ([`.github/workflows/validate.yml`](../.github/workflows/validate.yml)) next to
@@ -109,7 +108,7 @@ configured once in `pyproject.toml`:
 
 | Tool | What it proves | Command |
 |------|----------------|---------|
-| **ruff** | imports, unused names, bugbear traps, pyupgrade on `cad/` and `tests/` (the archived `cad/bakeoff/` is excluded) | `scripts/cad-lint.sh` |
+| **ruff** | imports, unused names, bugbear traps, pyupgrade on `cad/` and `tests/` | `scripts/cad-lint.sh` |
 | **mypy** | type consistency in `cad/parameters.py`, `cad/wedge.py`, `tests/`; kernel bindings are treated as a trusted third-party surface | `scripts/cad-lint.sh` |
 | **pytest** | the *solid*, not the source: one valid body, envelope vs the 180 mm bed, wall thickness, rebate depth, four magnet pockets with an intact floor, retention holes, fan bore/mounts, clamp bosses, §8 clamp load, and a golden volume | `scripts/cad-test.sh` |
 
@@ -161,12 +160,12 @@ not modelled here.
       exports wired.
 - ✅ Parameterised wedge builds and exports STEP + STL, fits the bed.
 - ✅ Committed artifacts validated in CI (manifold mesh, bed fit, STEP↔STL,
-      bake-off agreement, stale-export rebuild).
+      stale-export rebuild).
 - ✅ Code-quality gate: ruff + mypy (static) and pytest (geometry), wired into
       pre-commit and a dedicated CI job; printable STL/STEP/PNG uploaded as
       workflow artifacts.
-- ✅ GUI/editor review path: VS Code OCP CAD Viewer for live preview, FreeCAD
-      for independent STEP inspection (§11).
+- ✅ GUI/editor review path: VS Code OCP CAD Viewer for live preview and
+      step-through debugging (§10).
 - ⬜ **Hand the STL to the Bambu print task** (sibling issue) — the artifact is
   committed in `cad/exports/`.
 - ⬜ Extract the TG12-4 mechanical drawing (datasheet p.3) to confirm the module
@@ -179,36 +178,14 @@ not modelled here.
   `export_3mf()` one-liner; the Bambu print task consumes STL today. Add a small
   exporter when a multi-object/print-settings 3MF is actually needed.
 
-## 9. Bake-off: the same wedge in four tools
-
-On the user's request, the enclosure is also authored with three more
-agent-drivable tools so the result can be judged by review and print quality —
-same parameters, four tools. See **[cad/bakeoff/README.md](../cad/bakeoff/README.md)**.
-
-| Tool | Kernel | Source | Exports |
-|------|--------|--------|---------|
-| build123d | OCCT | `cad/wedge.py` | `cad/exports/` |
-| CadQuery | OCCT | `cad/bakeoff/cadquery/wedge_cq.py` | `cad/bakeoff/cadquery/exports/` |
-| SolidCraft | truck | `cad/bakeoff/solidcraft/wedge.json` | `cad/bakeoff/solidcraft/exports/` |
-| FreeCAD | OCCT | `cad/bakeoff/freecad/wedge_fc.py` | `cad/bakeoff/freecad/exports/` |
-
-```bash
-scripts/cad-run-cadquery.sh   # bootstrap: scripts/cad-setup-cadquery.sh
-scripts/cad-solidcraft.sh     # downloads a pinned SolidCraft CLI into .solidcraft/
-scripts/cad-run-freecad.sh    # downloads a pinned FreeCAD AppImage into .freecad/
-```
-
-All four fit the bed and agree on the solid to <0.01% volume. build123d keeps the
-canonical `cad/exports/` that the print task consumes.
-
-## 10. Prior art in this repo
+## 9. Prior art in this repo
 
 The KiCad pipeline already proves the pattern this toolchain follows: **source is
 a script, output is generated**. `scripts/gen_board.py` regenerates `TEG.kicad_pcb`
 the same way `cad/wedge.py` regenerates the STEP/STL. Keep CAD source and exports
 in the same commit.
 
-## 11. Editing and review in a GUI
+## 10. Editing and review in a GUI
 
 The workflow is **code-first with a live viewer**. No mature tool round-trips
 click-and-drag edits back into build123d source, so the source of truth stays the
@@ -217,8 +194,8 @@ Python; the GUI is for looking, measuring and reviewing.
 ### VS Code — OCP CAD Viewer (primary)
 
 The extension is recommended in `.vscode/extensions.json`
-(`bernhard-42.ocp-cad-viewer`). It renders both build123d and CadQuery and
-refreshes when the script runs.
+(`bernhard-42.ocp-cad-viewer`). It renders build123d and refreshes
+when the script runs.
 
 ```bash
 uv pip install --python .venv/bin/python ocp-vscode   # Python side, matches the extension
@@ -245,44 +222,3 @@ exported (the same one `scripts/cad-run.sh` sets):
 export LD_LIBRARY_PATH="$PWD/.venv/gl-libs/usr/lib/x86_64-linux-gnu"
 code .
 ```
-
-### FreeCAD (secondary, independent review)
-
-Open `cad/exports/wedge_enclosure.step` in FreeCAD 1.x for a second opinion in a
-mature B-Rep GUI: inspect faces, take measurements, check the rebate and magnet
-pockets, and export a drawing if needed. FreeCAD is deliberately **not** the
-source of truth: `.FCStd` is a zip container that git cannot diff usefully, and
-its scripting API has no advantage over build123d for headless agents.
-
-## 12. Agent tooling evaluated (not adopted as the toolchain)
-
-Two community projects were checked against this workflow. Both are useful and
-neither replaces the git + lint + test pipeline above.
-
-### text-to-cad — `earthtojake/text-to-cad`
-
-| | |
-|---|---|
-| **Licence** | MIT |
-| **Activity** | Created 2026-04-22; ~22k stars, ~2.2k forks; release **v0.7.25** and commits on 2026-10-20 (actively developed) |
-| **What it is** | A library of agent skills (Claude Code, Codex, Cursor, Gemini, Grok, or the Skills CLI) plus a local MCP server and browser CAD viewer. The CAD skill wraps **build123d / OpenCASCADE** and exports **STEP, STL, 3MF, GLB**; other skills cover DfAM checks, engineering drawings, DXF, G-code slicing with OrcaSlicer, **Bambu Labs handoff** (Bambu Connect / Bambu Studio), SendCutSend, and DFM |
-| **Requirements** | `uv`, Python 3.11+, Node 20+; telemetry is on by default (`uvx cadgen telemetry off`) |
-| **Fit** | **Strong complement, not a replacement.** It is exactly the agent-facing CAD/fabrication layer we would otherwise build, and its Bambu and slicing skills directly serve the print handoff (LAZ-23). But it is 0.x with near-daily releases, ships its own runtime/daemon, and does not own our source, lint or tests |
-
-**Recommendation:** pilot it on the next physical print — pinned (`cadgen==0.7.26`),
-telemetry off — as the slicer/Bambu handoff, keeping `cad/wedge.py` and this
-repo's gates as the source of truth. Do not make it the toolchain until it is 1.x
-and we have a printer profile worth encoding.
-
-### vcad — `ecto/vcad`
-
-| | |
-|---|---|
-| **Licence** | Apache-2.0 |
-| **Activity** | Created 2026-01-27; ~440 stars, 130 open issues; latest **tagged** release v0.9.4 (2026-04-29) though commits land daily |
-| **What it is** | A Rust/WASM **B-Rep kernel** with web, desktop and CLI surfaces, an `@vcad/mcp` server, assemblies, simulation, STEP import and STL/GLB/STEP/DXF export (no 3MF) |
-| **Fit** | This is the "web + desktop + CLI for humans and agents" model. **Experimental:** 0.x, small community, a large open-issue count, and no tagged release in ~6 months despite daily commits |
-
-**Recommendation:** watchlist. Re-evaluate at 1.0, and only if it adds 3MF and a
-credible assembly/mates story; switching a working kernel for an unproven one is
-the opposite of the maturity goal.

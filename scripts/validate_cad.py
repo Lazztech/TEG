@@ -8,7 +8,6 @@ in CI. It answers the questions a reviewer would otherwise check by hand:
   * is each STL a closed, consistently wound, single-body triangle mesh?
   * does it sit on Z=0 and fit the Bambu A1 mini bed (P1)?
   * does the mesh volume/area/envelope match the build123d solid (stale export?)
-  * do the bake-off contenders still agree with the canonical solid?
   * do the STEP files re-import to the same solid?
 
 Usage:
@@ -32,15 +31,13 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Tolerances. The bake-off tools disagree at the 1e-4 relative level, so these
-# are tight enough to catch a stale export or a dropped feature but loose enough
-# not to depend on a kernel version's triangulation.
+# Tolerances. These are tight enough to catch a stale export or a dropped
+# feature but loose enough not to depend on a kernel version's triangulation.
 WELD_DECIMALS = 4          # weld coincident STL vertices at 0.1 um
 VOLUME_REL_TOL = 0.002     # 0.2 %
 AREA_REL_TOL = 0.002       # 0.2 %
 BBOX_ABS_TOL = 0.05        # mm
 BED_TOL = 0.05             # mm
-CONTENDER_REL_TOL = 0.002  # bake-off solids must agree with the canonical one
 
 
 @dataclass
@@ -332,15 +329,6 @@ def main(argv: list[str] | None = None) -> int:
         Model("build123d", "cad/wedge.py",
               repo / "cad/exports/wedge_enclosure.stl",
               repo / "cad/exports/wedge_enclosure.step"),
-        Model("cadquery", "cad/bakeoff/cadquery/wedge_cq.py",
-              repo / "cad/bakeoff/cadquery/exports/wedge_enclosure.stl",
-              repo / "cad/bakeoff/cadquery/exports/wedge_enclosure.step"),
-        Model("solidcraft", "cad/bakeoff/solidcraft/wedge.json",
-              repo / "cad/bakeoff/solidcraft/exports/wedge_enclosure.stl",
-              repo / "cad/bakeoff/solidcraft/exports/wedge_enclosure.step"),
-        Model("freecad", "cad/bakeoff/freecad/wedge_fc.py",
-              repo / "cad/bakeoff/freecad/exports/wedge_enclosure.stl",
-              repo / "cad/bakeoff/freecad/exports/wedge_enclosure.step"),
     ]
 
     results: list[Result] = []
@@ -400,25 +388,6 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:  # noqa: BLE001
                 result.fail(f"validation error: {exc}")
             results.append(result)
-
-        # -- all models must agree with the canonical solid ------------------
-        if "build123d" in meshes:
-            canonical = meshes["build123d"]
-            for name, mesh in meshes.items():
-                if name == "build123d":
-                    continue
-                result = next(r for r in results if r.name == name)
-                if rel_err(mesh.volume, canonical.volume) > CONTENDER_REL_TOL:
-                    result.fail(
-                        f"volume {mesh.volume:.3f} cm^3 disagrees with build123d "
-                        f"{canonical.volume:.3f} cm^3"
-                    )
-                for axis, label in enumerate("XYZ"):
-                    if abs(mesh.size[axis] - canonical.size[axis]) > BBOX_ABS_TOL:
-                        result.fail(
-                            f"{label} envelope disagrees with build123d: "
-                            f"{mesh.size[axis]:.2f} vs {canonical.size[axis]:.2f} mm"
-                        )
 
         # -- rebuild the canonical part and compare --------------------------
         if args.rebuild:

@@ -41,7 +41,7 @@ build:
 1. **Parameters are valid** — `WedgeParams.validate()`, bed fit (P1), and the
    magnet pocket floor (T4, must stay ≥ 1 mm).
 2. **Artifacts exist and parse** — `wedge_enclosure.step` and `.stl` for the
-   canonical build123d model and all three bake-off contenders.
+   canonical build123d model.
 3. **The STL is printable geometry** — binary/ASCII parsing, no degenerate
    triangles, every edge shared by exactly two oppositely wound triangles, and
    a single connected body. Vertices are welded at 0.1 µm first, because STL is
@@ -54,9 +54,6 @@ build:
    temp directory and its STL volume, surface area, and envelope must match the
    committed STL. This is what catches "I changed `parameters.py` but forgot to
    re-run `scripts/cad-run.sh`".
-7. **The bake-off still agrees** — each contender's volume is within 0.2 % of
-   the canonical solid and its envelope within 0.05 mm, so a reviewer can trust
-   the four files are still the same part.
 
 Tolerances are deliberately loose enough to survive OCCT version skew and
 different tessellation of the same B-rep, but tight enough that a dropped
@@ -66,18 +63,12 @@ feature or stale export fails.
 
 | Failure | Fix |
 |---------|-----|
-| `committed STL is stale` | `scripts/cad-run.sh` then commit `cad/exports/` (and the matching bake-off export if you touched its source) |
+| `committed STL is stale` | `scripts/cad-run.sh` then commit `cad/exports/` |
 | `mesh is not a closed ... surface` | Re-export the STL; if it persists, the source solid is not manifold |
 | `envelope ... exceeds the ... bed` | Change `cad/parameters.py`; the model refuses to build an oversized part |
 | `STEP volume ... differs from STL` | Re-export both from the same source revision |
 | `missing STL/STEP` | Restore the artifact or add the newly introduced process to the registry in `scripts/validate_cad.py` |
 | `.venv` missing | `scripts/cad-setup.sh` |
-
-The bake-off contenders are validated but **not rebuilt** in CI: CadQuery,
-SolidCraft, and FreeCAD would add three heavyweight downloads to every run.
-Their committed artifacts are checked for agreement instead; regenerate them
-with the scripts in [cad/bakeoff/README.md](../cad/bakeoff/README.md) when you
-change the shared parameters.
 
 ## What the hardware checks prove
 
