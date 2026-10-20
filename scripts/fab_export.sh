@@ -107,7 +107,7 @@ python3 - "$ZIP" "$OUTDIR" "$BASE" <<'PY'
 import glob, os, sys, zipfile
 zip_path, outdir, base = sys.argv[1], sys.argv[2], sys.argv[3]
 names = sorted(
-    glob.glob(os.path.join(outdir, base + ".g*"))
+    glob.glob(os.path.join(outdir, base + "*.g*"))
     + glob.glob(os.path.join(outdir, base + "*.drl"))
     + glob.glob(os.path.join(outdir, base + "*.gbrjob"))
 )
