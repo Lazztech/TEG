@@ -159,7 +159,7 @@ pull-up to `+5V` (R11) so you can read fan speed. Feed the fan from `+5V` (pin 2
 
 ## Continuous validation
 
-Every pull request runs three checks (see **[docs/validation.md](docs/validation.md)**):
+Every pull request runs these checks (see **[docs/validation.md](docs/validation.md)**):
 
 | Check | What it proves |
 |-------|----------------|
