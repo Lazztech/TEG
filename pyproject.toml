@@ -1,0 +1,50 @@
+# Tooling config for the code-CAD sources. This repo is not a Python package:
+# the file exists so ruff, mypy and pytest share one source of conventions.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    ".venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "E4", "E7", "E9",   # pycodestyle errors
+    "E402",             # module import not at top (the sys.path shims need it)
+    "F",                # pyflakes
+    "I",                # import sorting
+    "B",                # bugbear
+    "UP",               # pyupgrade
+]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["cad/wedge.py", "cad/parameters.py", "tests"]
+mypy_path = "cad"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+show_error_codes = true
+
+# The kernel bindings are large C++ extensions with incomplete stubs; treat the
+# third-party surface as trusted and only type-check our own model code.
+[[tool.mypy.overrides]]
+module = [
+    "build123d",
+    "build123d.*",
+    "OCP",
+    "OCP.*",
+    "matplotlib",
+    "matplotlib.*",
+    "mpl_toolkits.*",
+    "numpy",
+    "numpy.*",
+]
+follow_imports = "skip"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

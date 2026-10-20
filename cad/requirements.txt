@@ -1,0 +1,6 @@
+# CAD toolchain for the TEG wedge enclosure and printed parts.
+# Install into the repo-local virtualenv with scripts/cad-setup.sh:
+#     scripts/cad-setup.sh
+# Pinned so a build is reproducible; bump deliberately.
+build123d==0.13.0
+matplotlib==3.11.2

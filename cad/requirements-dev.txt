@@ -1,0 +1,7 @@
+# Development-only tooling for the code-CAD sources (see pyproject.toml).
+# Install into the repo-local .venv with scripts/cad-setup.sh --dev
+# or directly:
+#     uv pip install --python .venv/bin/python -r cad/requirements-dev.txt
+ruff==0.17.1
+mypy==2.4.0
+pytest==9.1.1
