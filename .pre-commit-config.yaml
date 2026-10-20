@@ -1,0 +1,22 @@
+# Local quality gates for the code-CAD sources. The hooks use the repo-local
+# .venv (create it once with `scripts/cad-setup.sh --dev`) so ruff/mypy versions
+# are pinned by cad/requirements-dev.txt rather than re-downloaded by pre-commit.
+#
+#   uv pip install --python .venv/bin/python pre-commit
+#   .venv/bin/pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: cad-lint
+        name: CAD lint (ruff + mypy)
+        entry: scripts/cad-lint.sh
+        language: system
+        pass_filenames: false
+        files: ^(cad/.*\.py|tests/.*\.py|pyproject\.toml)$
+      - id: cad-test
+        name: CAD geometry tests (pytest)
+        entry: scripts/cad-test.sh
+        language: system
+        pass_filenames: false
+        files: ^(cad/wedge\.py|cad/parameters\.py|tests/.*\.py)$
+        stages: [pre-push]

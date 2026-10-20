@@ -187,7 +187,7 @@ the expected behaviour of this build, not a fault.
 | [BOM.md](BOM.md) | Board bill of materials (the sub-watt reference design) |
 | [PLAN.md](PLAN.md) | Living plan: findings, decisions, open questions, changelog |
 | [docs/validation.md](docs/validation.md) | **CI + local validation flow** — what every push checks, how to fix a failing artifact |
-| [.github/workflows/validate.yml](.github/workflows/validate.yml) | CI: rebuild/validate CAD, run KiCad ERC/DRC, syntax-check scripts |
+| [.github/workflows/validate.yml](.github/workflows/validate.yml) | CI: rebuild/validate CAD, lint/test the model code, run KiCad ERC/DRC, syntax-check scripts |
 | [docs/jlcpcb-fabrication.md](docs/jlcpcb-fabrication.md) | **End-to-end JLCPCB flow** — fab package command, verification checklist, manual approval-gated ordering |
 | `hardware/TEG.kicad_pro` | KiCad project |
 | `hardware/TEG.kicad_sch` | Root schematic (auto-generated — nets defined by pin labels) |

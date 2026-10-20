@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 from build123d import (
     Axis,
@@ -95,7 +96,6 @@ def build_wedge(p: WedgeParams):
     mag_r = (p.magnet_dia + 2 * p.magnet_clearance) / 2
     mag_h = p.magnet_thk + p.magnet_clearance
     mx = p.width / 2 - p.magnet_inset
-    mz = p.front_height / 2 - p.magnet_inset
     magnet_centres = [
         (0, 0, p.front_height - p.magnet_inset),   # top edge
         (0, 0, p.magnet_inset),                    # bottom edge
@@ -152,8 +152,8 @@ def render_preview(stl_path: Path, png_path: Path) -> None:
     """Shade the exported binary STL and save a 4-view PNG for review."""
     import struct
 
-    import numpy as np
     import matplotlib
+    import numpy as np
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -162,9 +162,9 @@ def render_preview(stl_path: Path, png_path: Path) -> None:
     with open(stl_path, "rb") as fh:
         fh.read(80)
         (n_tri,) = struct.unpack("<I", fh.read(4))
-        raw = np.frombuffer(fh.read(n_tri * 50), dtype=np.uint8)
+        raw: Any = np.frombuffer(fh.read(n_tri * 50), dtype=np.uint8)
     rec = raw.reshape(n_tri, 50)
-    tris = rec[:, 12:48].copy().view("<f4").reshape(n_tri, 3, 3)
+    tris: Any = rec[:, 12:48].copy().view("<f4").reshape(n_tri, 3, 3)
 
     # Outward normals follow the STL winding; a light behind the camera keeps
     # recesses (magnet pockets, rebate, fan bore) reading as dark holes.

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Bootstrap the repo-local CAD toolchain (build123d, code-CAD) with no sudo.
 #
-#   scripts/cad-setup.sh
+#   scripts/cad-setup.sh          # model toolchain only
+#   scripts/cad-setup.sh --dev    # + ruff, mypy, pytest for scripts/cad-lint.sh
 #
 # Creates .venv/ (Python 3.11-3.14), installs cad/requirements.txt, and stages the
 # couple of system GL/X libraries the OpenCASCADE kernel links against but that a
@@ -14,6 +15,19 @@ cd "$(dirname "$0")/.."
 REPO="$PWD"
 VENV="$REPO/.venv"
 GLLIB="$VENV/gl-libs"
+
+DEV=0
+for arg in "$@"; do
+    case "$arg" in
+        --dev) DEV=1 ;;
+        -h|--help)
+            sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0 ;;
+        *)
+            echo "cad-setup: unknown argument: $arg" >&2
+            exit 2 ;;
+    esac
+done
 
 say() { printf 'cad-setup: %s\n' "$*"; }
 
@@ -35,6 +49,11 @@ fi
 say "installing cad/requirements.txt"
 uv pip install --python "$VENV/bin/python" -r "$REPO/cad/requirements.txt"
 
+if [ "$DEV" -eq 1 ]; then
+    say "installing cad/requirements-dev.txt"
+    uv pip install --python "$VENV/bin/python" -r "$REPO/cad/requirements-dev.txt"
+fi
+
 # --- headless GL/X runtime for OpenCASCADE ----------------------------------
 # OCP (the OCCT binding behind build123d) links libGL.so.1, which pulls libGLX ->
 # libX11. A headless CI box has none of them. Download the Debian/Ubuntu packages
@@ -52,6 +71,7 @@ else
     say "GL/X libraries already staged"
 fi
 
+export LD_LIBRARY_PATH="$GLLIB/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 "$VENV/bin/python" - <<'PY'
 import build123d  # noqa: F401
 print("cad-setup: build123d", build123d.__version__, "imports OK (via scripts/cad-run.sh)")

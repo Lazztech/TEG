@@ -39,6 +39,37 @@ jobs:
           path: build/cad-validation.json
           if-no-files-found: ignore
 
+      - name: Upload printable artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wedge-enclosure
+          path: |
+            cad/exports/wedge_enclosure.stl
+            cad/exports/wedge_enclosure.step
+            cad/exports/wedge_enclosure.png
+          if-no-files-found: ignore
+
+  quality:
+    name: CAD quality (ruff, mypy, pytest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install code-CAD toolchain + dev tools
+        run: scripts/cad-setup.sh --dev
+
+      - name: Static analysis
+        run: scripts/cad-lint.sh
+
+      - name: Geometry tests
+        run: scripts/cad-test.sh
+
   hardware:
     name: Hardware ERC/DRC (KiCad 10)
     runs-on: ubuntu-24.04
@@ -100,4 +131,4 @@ jobs:
       - name: Syntax-check shell and Python
         run: |
           for f in scripts/*.sh; do bash -n "$f"; done
-          python3 -m compileall -q cad scripts
+          python3 -m compileall -q cad scripts tests

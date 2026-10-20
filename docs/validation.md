@@ -5,7 +5,9 @@ Every push to `main` and every pull request runs
 checks run locally through one entry point:
 
 ```bash
-scripts/cad-setup.sh        # once per host: .venv with build123d + headless GL libs
+scripts/cad-setup.sh --dev  # once per host: .venv with build123d, ruff, mypy, pytest
+scripts/cad-lint.sh         # ruff + mypy on the model code
+scripts/cad-test.sh         # geometry tests on the generated solid
 scripts/validate.sh         # CAD artifacts + KiCad ERC/DRC
 scripts/validate.sh --cad   # mechanical CAD only
 scripts/validate.sh --hardware   # ERC/DRC only
@@ -20,10 +22,12 @@ failure are reported independently.
 | Job | Toolchain | Command |
 |-----|-----------|---------|
 | `cad` | Python 3.13 + pinned `build123d` in `.venv/` | `scripts/validate.sh --cad` |
+| `quality` | same `.venv` + pinned `ruff`/`mypy`/`pytest` | `scripts/cad-lint.sh`, then `scripts/cad-test.sh` |
 | `hardware` | KiCad 10 (`kicad-cli`) from the official PPA | `scripts/validate.sh --hardware`, then `scripts/fab_export.sh` |
 | `scripts` | Python + bash | `bash -n` every script, `compileall` the Python sources |
 
-The CAD job uploads `build/cad-validation.json`. The hardware job uploads the
+The CAD job uploads `build/cad-validation.json` and the printable artifacts
+(`cad/exports/wedge_enclosure.{stl,step,png}`). The hardware job uploads the
 full ERC/DRC reports (`build/erc-all.rpt`, `build/drc-all.rpt`, plus the
 error-gated `build/erc.rpt` and `build/drc.rpt`) and the generated JLCPCB
 package (`TEG-gerbers.zip`, BOM, CPL). Everything is retained as run artifacts

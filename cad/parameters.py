@@ -12,7 +12,7 @@ comes from a datasheet or a requirement cites it inline; estimates are marked
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
@@ -121,7 +121,7 @@ class WedgeParams:
         return json.dumps(asdict(self), indent=2, sort_keys=True)
 
     @classmethod
-    def from_json_file(cls, path: str | Path) -> "WedgeParams":
+    def from_json_file(cls, path: str | Path) -> WedgeParams:
         data = json.loads(Path(path).read_text())
         allowed = {f for f in cls.__dataclass_fields__}
         unknown = set(data) - allowed

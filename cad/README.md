@@ -9,11 +9,19 @@ program, so a change is a reviewable diff and an agent can drive it end to end.
 - `exports/` — committed build output. The **STL feeds the Bambu print task**.
 - `bakeoff/` — the same enclosure authored in three more tools (CadQuery,
   SolidCraft, FreeCAD) for a print-quality comparison. See `bakeoff/README.md`.
+- `requirements.txt` — pinned model toolchain; `requirements-dev.txt` adds
+  ruff, mypy and pytest for the quality gate.
 
 ```bash
-scripts/cad-setup.sh   # once: create .venv/ and install deps (no sudo)
-scripts/cad-run.sh     # build + export
+scripts/cad-setup.sh --dev   # once: create .venv/ and install deps (no sudo)
+scripts/cad-run.sh           # build + export
+scripts/cad-lint.sh          # ruff + mypy
+scripts/cad-test.sh          # geometry tests
 ```
+
+For live review, open the model in VS Code with the **OCP CAD Viewer** extension
+(pinned in `.vscode/extensions.json`); see
+[docs/cad-toolchain.md §11](../docs/cad-toolchain.md#11-editing-and-review-in-a-gui).
 
 Full contract, conventions, and the requirements mapping:
 **[docs/cad-toolchain.md](../docs/cad-toolchain.md)**.
