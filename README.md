@@ -157,6 +157,21 @@ There is **no MCU on the board**, so `FAN_PWM` (J2 pin 4) must be driven by an e
 a bench supply, signal generator, or your instrumentation. `FAN_TACH` (pin 3) has a 10 kΩ
 pull-up to `+5V` (R11) so you can read fan speed. Feed the fan from `+5V` (pin 2) and `GND` (pin 1).
 
+## Continuous validation
+
+Every pull request runs three checks (see **[docs/validation.md](docs/validation.md)**):
+
+| Check | What it proves |
+|-------|----------------|
+| **CAD artifacts** | Rebuilds the build123d wedge and requires the committed STEP/STL to match. Every STL is a closed, single-body, bed-fitting mesh, and the four bake-off exports still agree. |
+| **ERC / DRC** | `kicad-cli` (KiCad 10) finds no error-level schematic or board violations. |
+| **Fab package** | Gerbers, drill, CPL, BOM and the JLCPCB zip build; nothing is ordered. |
+| **Scripts** | All shell scripts parse and all Python sources compile. |
+
+Run the same checks locally with `scripts/validate.sh` (add `--cad` if KiCad is
+not installed). A failing CAD check usually means the committed exports are
+stale: run `scripts/cad-run.sh` and commit the updated artifacts.
+
 ## What to expect when you test
 
 **Two TG12-4 modules produce only a few hundred mW at useful ΔT, while the fan draws
@@ -171,6 +186,8 @@ the expected behaviour of this build, not a fault.
 | [REQUIREMENTS.md](REQUIREMENTS.md) | **Whole-device requirements** — electrical, mechanical, thermal/safety, manufacturing, and the system BOM split into *from JLCPCB* vs *buy separately* |
 | [BOM.md](BOM.md) | Board bill of materials (the sub-watt reference design) |
 | [PLAN.md](PLAN.md) | Living plan: findings, decisions, open questions, changelog |
+| [docs/validation.md](docs/validation.md) | **CI + local validation flow** — what every push checks, how to fix a failing artifact |
+| [.github/workflows/validate.yml](.github/workflows/validate.yml) | CI: rebuild/validate CAD, run KiCad ERC/DRC, syntax-check scripts |
 | [docs/jlcpcb-fabrication.md](docs/jlcpcb-fabrication.md) | **End-to-end JLCPCB flow** — fab package command, verification checklist, manual approval-gated ordering |
 | `hardware/TEG.kicad_pro` | KiCad project |
 | `hardware/TEG.kicad_sch` | Root schematic (auto-generated — nets defined by pin labels) |
@@ -180,7 +197,8 @@ the expected behaviour of this build, not a fault.
 | `hardware/easyeda2kicad.3dshapes/` | 3D WRL models, named as the footprints reference them |
 | `scripts/gen_schematic.py` | Regenerates `TEG.kicad_sch` from the part/net table inside it |
 | `scripts/gen_board.py` | Regenerates `TEG.kicad_pcb` (shares the netlist with `gen_schematic.py`) |
-| `scripts/validate.sh` | Runs KiCad ERC (schematic) and DRC (board); needs `kicad-cli` |
+| `scripts/validate.sh` | **All checks**: rebuild/validate the code-CAD exports, then KiCad ERC + DRC (`--cad` / `--hardware` for one half) |
+| `scripts/validate_cad.py` | Validates committed CAD STEP/STL artifacts: manifold mesh, bed fit, STEP↔STL agreement, stale-export check |
 | `scripts/jlc_lookup.py` | Queries JLCPCB's own parts API — id, library type, stock |
 | `scripts/fab_export.sh` | **One command** → JLCPCB package (Gerbers + drill + BOM + CPL) in `build/fab/` |
 | `scripts/jlc_bom.py` | Schematic → JLCPCB BOM CSV (`Comment,Designator,Footprint,LCSC Part #`) |
@@ -201,7 +219,8 @@ The schematic and board are **generated** — edit the part/net table in
 python3 scripts/gen_schematic.py   # -> hardware/TEG.kicad_sch
 python3 scripts/gen_board.py       # -> hardware/TEG.kicad_pcb (unrouted, wipes routing)
 ./scripts/freeroute.sh             # route it (DSN -> FreeRouting -> SES -> DRC)
-./scripts/validate.sh              # ERC + DRC (needs kicad-cli)
+./scripts/validate.sh              # all checks (CAD artifacts + ERC/DRC)
+./scripts/validate.sh --cad        # CAD artifacts only, no KiCad needed
 python3 scripts/jlc_lookup.py "22uH inductor"   # search the JLCPCB catalogue
 
 # one-command JLCPCB package: gerbers + drill + BOM + CPL into build/fab/

@@ -85,6 +85,20 @@ millimetres, exported with the default resolution.
 > Conventions for printability: model in **millimetres**, Z up, the open bottom
 > on the bed (Z=0). Slicer/printer settings live in the print task, not here.
 
+### 4.1 Validation and CI
+
+Committed exports are checked, not assumed. `scripts/validate.sh --cad` runs
+`scripts/validate_cad.py`, which verifies that every committed STL is a closed,
+consistently wound, single-body mesh; sits on Z=0 and fits the A1 mini bed;
+matches the STEP volume and envelope; and still matches a fresh rebuild of
+`cad/wedge.py`. The three bake-off exports must also agree with the canonical
+solid. A stale artifact fails with the exact regeneration command.
+
+GitHub Actions runs this on every pull request
+([`.github/workflows/validate.yml`](../.github/workflows/validate.yml)) next to
+the KiCad ERC/DRC and script-syntax jobs. Full contract:
+**[docs/validation.md](validation.md)**.
+
 ## 5. Conventions
 
 - **Units:** millimetres everywhere.
@@ -122,6 +136,8 @@ not modelled here.
 
 - ✅ Tool chosen (build123d), source layout established, exports wired.
 - ✅ Parameterised wedge builds and exports STEP + STL, fits the bed.
+- ✅ Committed artifacts validated in CI (manifold mesh, bed fit, STEP↔STL,
+      bake-off agreement, stale-export rebuild).
 - ⬜ **Hand the STL to the Bambu print task** (sibling issue) — the artifact is
   committed in `cad/exports/`.
 - ⬜ Extract the TG12-4 mechanical drawing (datasheet p.3) to confirm the module

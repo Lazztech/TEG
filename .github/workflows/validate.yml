@@ -1,0 +1,103 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cad:
+    name: CAD artifacts (build123d)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install code-CAD toolchain
+        run: scripts/cad-setup.sh
+
+      - name: Rebuild and validate CAD artifacts
+        run: scripts/validate.sh --cad
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-validation
+          path: build/cad-validation.json
+          if-no-files-found: ignore
+
+  hardware:
+    name: Hardware ERC/DRC (KiCad 10)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install KiCad 10
+        run: |
+          sudo add-apt-repository --yes ppa:kicad/kicad-10.0-releases
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends kicad
+          kicad-cli --version
+
+      - name: Seed the global footprint table
+        run: |
+          KICAD_VER="$(kicad-cli --version | cut -d. -f1,2)"
+          mkdir -p "$HOME/.config/kicad/$KICAD_VER"
+          if [ -f /usr/share/kicad/template/fp-lib-table ]; then
+            cp /usr/share/kicad/template/fp-lib-table "$HOME/.config/kicad/$KICAD_VER/"
+          fi
+
+      - name: Validate schematic and board
+        run: scripts/validate.sh --hardware
+
+      - name: Build the JLCPCB fabrication package (no order)
+        run: scripts/fab_export.sh
+
+      - name: Upload fabrication package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jlcpcb-package
+          path: |
+            build/fab/TEG-gerbers.zip
+            build/fab/TEG-BOM-jlcpcb.csv
+            build/fab/TEG-CPL-jlcpcb.csv
+          if-no-files-found: ignore
+
+      - name: Upload ERC/DRC reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kicad-reports
+          path: build/*.rpt
+          if-no-files-found: ignore
+
+  scripts:
+    name: Scripts (syntax)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Syntax-check shell and Python
+        run: |
+          for f in scripts/*.sh; do bash -n "$f"; done
+          python3 -m compileall -q cad scripts
